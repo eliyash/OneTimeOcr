@@ -81,7 +81,7 @@ def main():
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    image_net_data = ImageFolder(Locations.PAGE_TO_READ_PATH, transform=transform)
+    image_net_data = ImageFolder(Locations.TRAINING_LETTERS, transform=transform)
 
     train_loader = torch.utils.data.DataLoader(image_net_data,
                                                batch_size=16,

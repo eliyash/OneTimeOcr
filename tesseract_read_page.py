@@ -1,24 +1,31 @@
-import errno
-import os
-
-from PIL import Image, ImageDraw, ImageFilter
 import pytesseract
-
+from PIL import Image, ImageDraw
 # If you don't have tesseract executable in your PATH, include the following:
 from pytesseract import Output
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe'
+from paths import Locations
+from utils import make_dir
+
+pytesseract.pytesseract.tesseract_cmd = Locations.TESSERACT_EXEC
 
 
-def make_dir(filename):
-    if not os.path.exists(os.path.dirname(filename)):
-        try:
-            os.makedirs(os.path.dirname(filename))
-        except OSError as exc: # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
+class Square:
+    def __init__(self, top: int, height: int, left: int, width: int):
+        self.top = top
+        self.height = height
+        self.left = left
+        self.width = width
 
-# Example tesseract_cmd = r'C:\Program Files (x86)\Tesseract-OCR\tesseract'
+    def get_surrounding_line(self):
+        top, height, left, width = self.top, self.height, self.left, self.width
+        return [(left, top), (left, top + height), (left + width, top + height), (left + width, top), (left, top)]
+
+
+class Letter:
+    def __init__(self, name: str, bounding_box: Square):
+        self.name = name
+        self.bounding_box = bounding_box
+
 
 # Simple image to string
 # print(pytesseract.image_to_string(Image.open(r"C:\Users\eli\Dropbox\Workspace\AI\mnist\text.bmp")))
@@ -26,55 +33,56 @@ def make_dir(filename):
 # # French text image to string
 # print(pytesseract.image_to_string(Image.open('test-european.jpg'), lang='fra'))
 
+
 # Get bounding box estimates
-page_num = 3
-img = Image.open(r".\text{}.png".format(page_num))
+img = Image.open(Locations.PAGE_TO_READ_PATH)
 # img = img.filter(ImageFilter.FIND_EDGES)
 # img = img.convert('L')
 # img = img.point(lambda x: 0 if x < 180 else 255, '1')
 # img.show()
 word_data = pytesseract.image_to_data(img, output_type=Output.DICT, lang='heb')
-height_list = word_data['height']
-left_list = word_data['left']
-top_list = word_data['top']
-width_list = word_data['width']
 
 boxes_of_words = []
-for index in range(len(top_list)):
-    width, left, top, height = width_list[index], left_list[index], top_list[index], height_list[index]
-    boxes_of_words.append(
-        [(left, top), (left, top + height), (left + width, top + height), (left + width, top), (left, top)])
+for top, height, left, width in zip(word_data['top'], word_data['height'], word_data['left'], word_data['width']):
+    boxes_of_words.append(Square(top, height, left, width))
 
 letter_data = pytesseract.image_to_boxes(img, output_type=Output.DICT, lang='heb')
 
-right_list = letter_data['right']
-left_list = letter_data['left']
-top_list = letter_data['top']
-bottom_list = letter_data['bottom']
 
-width, height = img.size
+img_width, img_height = img.size
 boxes_of_letters = []
 
-for index in range(len(top_list)):
+letters_boxes = zip(
+    letter_data['char'],
+    letter_data['top'],
+    letter_data['bottom'],
+    letter_data['left'],
+    letter_data['right']
+)
+
+index = 0
+for char, top, bottom, left, right in letters_boxes:
+    height = top - bottom
+    top = img_height - top
+    left = left
+    width = right - left
     try:
-        left, right, top, bottom = left_list[index], right_list[index], top_list[index], bottom_list[index]
         letter_image = img.copy()
-        letter_image = letter_image.crop((left, height-top, right, height-bottom))
-        char = letter_data['char'][index]
+        letter_image = letter_image.crop((left, top, left+width, top+height))
         if not char.isalpha():
             char = ord(char)
-        file_path = ".\\page_{}\\letter{}\\".format(page_num, char)
+        file_path = "{}\\letter{}\\".format(Locations.LETTERS_PATH, char)
         make_dir(file_path)
         letter_image.save('{}{}.png'.format(file_path, index), "PNG")
 
-        boxes_of_letters.append(
-            [(left, height-top), (left, height-bottom), (right, height-bottom), (right, height-top), (left, height-top)])
+        boxes_of_letters.append(Letter(char, Square(top, height, left, width)))
+        index += 1
     except:
         print("error in letter: {}".format(letter_data['char'][index]))
 draw = ImageDraw.Draw(img)
-all_boxes = boxes_of_letters + boxes_of_words
+all_boxes = boxes_of_words + [letter.bounding_box for letter in boxes_of_letters]
 for box in all_boxes:
-    draw.line(box, fill=128)
+    draw.line(box.get_surrounding_line(), fill=128)
 del draw
 img.show()
 

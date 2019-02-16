@@ -57,7 +57,7 @@ def main():
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    model = torch.load(Locations.NETWORK_PATH)
+    model = torch.load(Locations.NETWORK_PATH)  # type: Net
     model.eval()
 
     transform = transforms.Compose([
@@ -68,7 +68,7 @@ def main():
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    imagenet_data = ImageFolder(Locations.PAGE_TO_READ_PATH, transform=transform)
+    imagenet_data = ImageFolder(Locations.TRAINING_LETTERS, transform=transform)
 
     test_loader = torch.utils.data.DataLoader(imagenet_data,
                                               batch_size=16,
