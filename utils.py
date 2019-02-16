@@ -1,4 +1,5 @@
 import errno
+import json
 import os
 
 
@@ -9,3 +10,15 @@ def make_dir(filename):
         except OSError as exc:  # Guard against race condition
             if exc.errno != errno.EEXIST:
                 raise
+            
+
+def save_data(data, filename):
+    with open(filename, 'w') as fp:
+        json.dump(data, fp)
+
+
+def load_data(filename):
+    with open(filename, 'r') as fp:
+        data = json.load(fp)
+        return data
+
