@@ -1,6 +1,12 @@
 import cv2
 import numpy as np
 
+# def simple_edge_detector():
+#     img = Image.open(Locations.PAGE_TO_READ_PATH)
+#     img = img.filter(ImageFilter.FIND_EDGES)
+#     img = img.convert('L')
+#     img = img.point(lambda x: 0 if x < 180 else 255, '1')
+#     img.show()
 
 def get_connected_components(src):
     # Threshold it so it becomes binary
