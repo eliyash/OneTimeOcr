@@ -1,3 +1,5 @@
+from typing import List
+
 import pytesseract
 from PIL import Image, ImageDraw
 # If you don't have tesseract executable in your PATH, include the following:
@@ -20,6 +22,9 @@ class Square:
         top, height, left, width = self.top, self.height, self.left, self.width
         return [(left, top), (left, top + height), (left + width, top + height), (left + width, top), (left, top)]
 
+    def get_image_cropping(self):
+        top, height, left, width = self.top, self.height, self.left, self.width
+        return left, top, left + width, top + height
 
 class Letter:
     def __init__(self, name: str, bounding_box: Square):
@@ -50,33 +55,40 @@ def generate_letter_boxes(img):
         letter_data['right']
     )
 
-    index = 0
     boxes_of_letters = []
     for char, top, bottom, left, right in letters_boxes:
         height = top - bottom
         top = img_height - top
         left = left
         width = right - left
+        boxes_of_letters.append(Letter(char, Square(top, height, left, width)))
+    return boxes_of_letters
+
+
+def save_letter_images(img, letters: List[Letter]):
+    index = 0
+    for letter in letters:
+        char = letter.name
         try:
             letter_image = img.copy()
-            letter_image = letter_image.crop((left, top, left+width, top+height))
+            letter_image = letter_image.crop(letter.bounding_box.get_image_cropping())
             if not char.isalpha():
                 char = ord(char)
             file_path = "{}\\letter{}\\".format(Locations.LETTERS_PATH, char)
             make_dir(file_path)
             letter_image.save('{}{}.png'.format(file_path, index), "PNG")
 
-            boxes_of_letters.append(Letter(char, Square(top, height, left, width)))
             index += 1
         except Exception as e:
-            print("error in letter: {}, e={}".format(letter_data['char'][index], e))
-    return boxes_of_letters
+            print("error in letter: {}, e={}".format(char, e))
 
 
 def main():
     img = Image.open(Locations.PAGE_TO_READ_PATH)
-    boxes_of_words = generate_word_boxes(img)
     letters = generate_letter_boxes(img)
+    save_letter_images(img, letters)
+
+    boxes_of_words = generate_word_boxes(img)
     all_boxes = boxes_of_words + [letter.bounding_box for letter in letters]
 
     draw = ImageDraw.Draw(img)
