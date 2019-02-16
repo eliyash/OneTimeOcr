@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 # from torchvision import datasets, transforms
+from paths import Locations
 
 
 class Net(nn.Module):
@@ -77,7 +78,7 @@ def main():
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    model = torch.load('mytraining_new.pt')
+    model = torch.load(Locations.NETWORK_PATH)
     model.eval()
 
     transform = transforms.Compose([
@@ -88,7 +89,7 @@ def main():
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    imagenet_data = ImageFolder(r'.\page_1', transform=transform)
+    imagenet_data = ImageFolder(Locations.PAGE_TO_READ_PATH, transform=transform)
 
     test_loader = torch.utils.data.DataLoader(imagenet_data,
                                               batch_size=16,

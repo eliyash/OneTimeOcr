@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
+from paths import Locations
+
 
 class Net(nn.Module):
     def __init__(self, num_classes):
@@ -92,7 +94,7 @@ def main():
 
     transform = transforms.Compose([
         # you can add other transformations in this list
-        transforms.Resize((100,100)),
+        transforms.Resize((100, 100)),
         # transforms.Resize((110, 110)),
         # transforms.RandomCrop(100, 100),
         transforms.RandomRotation(10),
@@ -101,7 +103,7 @@ def main():
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    image_net_data = ImageFolder(r'.\page_1', transform=transform)
+    image_net_data = ImageFolder(Locations.PAGE_TO_READ_PATH, transform=transform)
 
     train_loader = torch.utils.data.DataLoader(image_net_data,
                                                batch_size=16,
@@ -120,7 +122,7 @@ def main():
         train(model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
 
-    torch.save(model, 'mytraining_new.pt')
+    torch.save(model, Locations.NETWORK_PATH)
 
 
 if __name__ == '__main__':
