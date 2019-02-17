@@ -7,6 +7,7 @@ class Locations:
     TESSERACT_RESULT_FOLDER = r'C:\Workspace\MyOCR\data\tesseract result\\'
     PAGE_TO_READ = 'page_3'
     NETWORK_NAME = 'last_net.pt'
+    IMAGE_TO_TEST = r'C:\Workspace\MyOCR\data\letters by page\page_3\letterא\20.png'
 
     PAGE_TO_READ_PATH = PAGES_DIRECTORY + PAGE_TO_READ + ".png"
     LETTERS_PATH = PAGE_LETTERS_DIRECTORY + PAGE_TO_READ
