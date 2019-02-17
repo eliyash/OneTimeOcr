@@ -29,6 +29,10 @@ class Square:
     def clone(self):
         return Square(self.top, self.height, self.left, self.width)
 
+    def match_top_and_height(self, match_to: "Square"):
+        self.top = match_to.top
+        self.height = match_to.height
+
     # TODO: check logic
     @staticmethod
     def _do_lines_overlap(line1: Tuple[int, int], line2: Tuple[int, int]):
@@ -57,13 +61,6 @@ class Square:
         return True
 
 
-class Word:
-    def __init__(self, line: int, letters: str, bounding_box: Square):
-        self.line = line
-        self.letters = letters
-        self.bounding_box = bounding_box
-
-
 class Letter:
     def __init__(self, name: str, bounding_box: Square):
         self.name = name
@@ -71,6 +68,23 @@ class Letter:
 
     def clone(self):
         return Letter(self.name, self.bounding_box.clone())
+
+
+class Word:
+    def __init__(self, line: int, word_str: str, bounding_box: Square, letters: List[Letter] = None):
+        self.line = line
+        self.word_str = word_str
+        self.bounding_box = bounding_box
+        self.letters = letters
+        if self.letters is None:
+            self.letters = []
+
+    def match_letters_to_word_boxes(self):
+        for letter in self.letters:
+            letter.bounding_box.match_top_and_height(self.bounding_box)
+
+    def clone(self):
+        return Word(self.line, self.word_str, self.bounding_box.clone(), [letter.clone() for letter in self.letters])
 
 
 def generate_word_boxes(img):
@@ -147,15 +161,41 @@ def save_letter_images(img, letters: List[Letter]):
             print("error in letter: {}, e={}".format(char, e))
 
 
-def match_letter_to_word(words: List[Word], letters: List[Letter])->List[Tuple[Word, List[Letter]]]:
+def match_letters_with_words(words: List[Word], letters: List[Letter]):
     last_letters = 0
-    letters_by_words = []
     for word in words:
-        last_letter_in_current_word = last_letters + len(word.letters)
-        words_letters = letters[last_letters:last_letter_in_current_word]
+        last_letter_in_current_word = last_letters + len(word.word_str)
+        word.letters = letters[last_letters:last_letter_in_current_word]
         last_letters = last_letter_in_current_word
-        letters_by_words.append((word, words_letters))
-    return letters_by_words
+
+
+def index_to_color(index):
+    r = (index * 60) % 255
+    g = (index * 30) % 255
+    b = (index * 15) % 255
+    return r, g, b, 255
+
+
+def generate_image_with_boxes(orig_image: Image, words: List[Word]):
+    new_image = orig_image.copy()
+    draw = ImageDraw.Draw(new_image)
+    index = 0
+    word_letters = []
+    for word in words:
+        for letter in word.letters:
+            color = (0, 0, 0, 255)
+            if index:
+                color = index_to_color(index)
+
+                word_letter = letter.clone()
+
+                draw.line(word_letter.bounding_box.get_surrounding_line(), fill=color)
+                word_letters.append(word_letter)
+
+            draw.line(word.bounding_box.get_surrounding_line(), fill=color)
+        index += 1
+    del draw
+    return new_image
 
 
 def main():
@@ -163,36 +203,15 @@ def main():
 
     letters = generate_letter_boxes(orig_image)
     words = generate_word_boxes(orig_image)
-    letters_by_boxes = match_letter_to_word(words, letters)
 
-    img = orig_image.copy()
-    draw = ImageDraw.Draw(img)
-    index = 0
+    match_letters_with_words(words, letters)
 
-    word_letters = []
-    for word, letters_of_word in letters_by_boxes:
-        for letter in letters_of_word:
-            if index:
-                r = (index * 60) % 255
-                g = (index * 30) % 255
-                b = (index * 15) % 255
-                color = (r, g, b, 255)
+    for word in words:
+        word.match_letters_to_word_boxes()
 
-                word_letter = letter.clone()
+    generate_image_with_boxes(orig_image, words).show()
 
-                word_letter.bounding_box.top = word.bounding_box.top
-                word_letter.bounding_box.height = word.bounding_box.height
-                draw.line(word_letter.bounding_box.get_surrounding_line(), fill=color)
-                word_letters.append(word_letter)
-            else:
-                color = (0, 0, 0, 255)
-
-            draw.line(word.bounding_box.get_surrounding_line(), fill=color)
-        index += 1
-    del draw
-    img.show()
-
-    save_letter_images(orig_image, word_letters)
+    save_letter_images(orig_image, [letter for word in words for letter in word.letters])
 
 
 if __name__ == '__main__':
