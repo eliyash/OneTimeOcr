@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List
 
 import pytesseract
 from PIL import Image, ImageDraw
@@ -32,33 +32,6 @@ class Square:
     def match_top_and_height(self, match_to: "Square"):
         self.top = match_to.top
         self.height = match_to.height
-
-    # TODO: check logic
-    @staticmethod
-    def _do_lines_overlap(line1: Tuple[int, int], line2: Tuple[int, int]):
-        if line2[0] <= line1[0] < line2[1]:
-            return True
-        if line1[0] <= line2[0] < line1[1]:
-            return True
-
-        return False
-
-    # TODO: check logic
-    @classmethod
-    def do_squares_overlap(cls, square_1: "Square", square_2: "Square"):
-        if not cls._do_lines_overlap(
-            (square_1.left, square_1.left + square_1.width),
-            (square_2.left, square_2.left + square_2.width)
-        ):
-            return False
-
-        if not cls._do_lines_overlap(
-            (square_1.top, square_1.top + square_1.height),
-            (square_2.top, square_2.top + square_2.height)
-        ):
-            return False
-
-        return True
 
 
 class Letter:
