@@ -5,8 +5,8 @@ from PIL import Image, ImageDraw
 # If you don't have tesseract executable in your PATH, include the following:
 from pytesseract import Output
 
+from utils import make_dir
 from paths import Locations
-from utils import make_dir, save_data, load_data
 
 pytesseract.pytesseract.tesseract_cmd = Locations.TESSERACT_EXEC
 
@@ -26,9 +26,12 @@ class Square:
         top, height, left, width = self.top, self.height, self.left, self.width
         return left, top, left + width, top + height
 
+    def clone(self):
+        return Square(self.top, self.height, self.left, self.width)
+
     # TODO: check logic
     @staticmethod
-    def _do_lines_overlap(line1: Tuple[int,int], line2: Tuple[int, int]):
+    def _do_lines_overlap(line1: Tuple[int, int], line2: Tuple[int, int]):
         if line2[0] <= line1[0] < line2[1]:
             return True
         if line1[0] <= line2[0] < line1[1]:
@@ -66,11 +69,16 @@ class Letter:
         self.name = name
         self.bounding_box = bounding_box
 
+    def clone(self):
+        return Letter(self.name, self.bounding_box.clone())
+
 
 def generate_word_boxes(img):
     word_data = pytesseract.image_to_data(img, output_type=Output.DICT, lang='heb')
-    # save_data(word_data, "word_data.json")
-    # word_data = load_data("word_data.json")
+    # from utils import save_data, load_data
+    # word_data = load_data(Locations.TESSERACT_RESULT_FOLDER + "word_data.json")
+    # save_data(word_data, Locations.TESSERACT_RESULT_FOLDER + "word_data.json")
+
     boxes_from_tesseract = zip(
         word_data['top'],
         word_data['height'],
@@ -97,8 +105,9 @@ def generate_word_boxes(img):
 
 def generate_letter_boxes(img):
     letter_data = pytesseract.image_to_boxes(img, output_type=Output.DICT, lang='heb')
-    # save_data(letter_data, "letter_data.json")
-    # letter_data = load_data("letter_data.json")
+    # from utils import save_data, load_data
+    # letter_data = load_data(Locations.TESSERACT_RESULT_FOLDER + "letter_data.json")
+    # save_data(letter_data, Locations.TESSERACT_RESULT_FOLDER + "letter_data.json")
 
     img_width, img_height = img.size
 
@@ -129,7 +138,7 @@ def save_letter_images(img, letters: List[Letter]):
             letter_image = letter_image.crop(letter.bounding_box.get_image_cropping())
             if not char.isalpha():
                 char = ord(char)
-            file_path = "{}\\letter{}\\".format(Locations.LETTERS_PATH, char)
+            file_path = r"{}\letter{}\\".format(Locations.LETTERS_PATH, char)
             make_dir(file_path)
             letter_image.save('{}{}.png'.format(file_path, index), "PNG")
 
@@ -150,17 +159,17 @@ def match_letter_to_word(words: List[Word], letters: List[Letter])->List[Tuple[W
 
 
 def main():
-    img = Image.open(Locations.PAGE_TO_READ_PATH)
+    orig_image = Image.open(Locations.PAGE_TO_READ_PATH)
 
-    letters = generate_letter_boxes(img)
-    words = generate_word_boxes(img)
-
+    letters = generate_letter_boxes(orig_image)
+    words = generate_word_boxes(orig_image)
     letters_by_boxes = match_letter_to_word(words, letters)
 
+    img = orig_image.copy()
     draw = ImageDraw.Draw(img)
-    # for box in words:
-    #     draw.line(box.get_surrounding_line(), fill=144)
     index = 0
+
+    word_letters = []
     for word, letters_of_word in letters_by_boxes:
         for letter in letters_of_word:
             if index:
@@ -169,7 +178,12 @@ def main():
                 b = (index * 15) % 255
                 color = (r, g, b, 255)
 
-                draw.line(letter.bounding_box.get_surrounding_line(), fill=color)
+                word_letter = letter.clone()
+
+                word_letter.bounding_box.top = word.bounding_box.top
+                word_letter.bounding_box.height = word.bounding_box.height
+                draw.line(word_letter.bounding_box.get_surrounding_line(), fill=color)
+                word_letters.append(word_letter)
             else:
                 color = (0, 0, 0, 255)
 
@@ -178,7 +192,7 @@ def main():
     del draw
     img.show()
 
-    save_letter_images(img, letters)
+    save_letter_images(orig_image, word_letters)
 
 
 if __name__ == '__main__':
