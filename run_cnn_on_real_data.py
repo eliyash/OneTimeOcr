@@ -30,7 +30,12 @@ def main():
     image = image_loader(data_transforms, Locations.IMAGE_TO_TEST)
 
     var_image = Variable(torch.Tensor(image))
-    print(model(var_image))
+    output = model(var_image)
+    print(output)
+
+    sm = torch.nn.Softmax()
+    probabilities = sm(output)
+    print(probabilities)  # Converted to probabilities
 
 
 if __name__ == '__main__':

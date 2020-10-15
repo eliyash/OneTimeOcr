@@ -1,14 +1,16 @@
+import os
 from typing import List
 
+import cv2
 import pytesseract
-from PIL import Image, ImageDraw
-# If you don't have tesseract executable in your PATH, include the following:
+import numpy as np
 from pytesseract import Output
 
 from utils import make_dir
 from paths import Locations
 
 pytesseract.pytesseract.tesseract_cmd = Locations.TESSERACT_EXEC
+LETTERS_PATCH_FOLDER = r'C:\Workspace\MyOCR\identifieng letters\data\books\letters'
 
 
 class Square:
@@ -96,7 +98,7 @@ def generate_letter_boxes(img):
     # letter_data = load_data(Locations.TESSERACT_RESULT_FOLDER + "letter_data.json")
     # save_data(letter_data, Locations.TESSERACT_RESULT_FOLDER + "letter_data.json")
 
-    img_width, img_height = img.size
+    img_width, img_height = img.shape[:2]
 
     letters_boxes = zip(
         letter_data['char'],
@@ -122,10 +124,11 @@ def save_letter_images(img, letters: List[Letter]):
         char = letter.name
         try:
             letter_image = img.copy()
-            letter_image = letter_image.crop(letter.bounding_box.get_image_cropping())
+            left, top, right, bottom = letter.bounding_box.get_image_cropping()
+            letter_image = letter_image[left:right, top:bottom]
             if not char.isalpha():
                 char = ord(char)
-            file_path = r"{}\letter{}\\".format(Locations.LETTERS_PATH, char)
+            file_path = r"{}\letter{}\\".format(Locations.PAGE_LETTERS_DIRECTORY, char)
             make_dir(file_path)
             letter_image.save('{}{}.png'.format(file_path, index), "PNG")
 
@@ -149,9 +152,17 @@ def index_to_color(index):
     return r, g, b, 255
 
 
-def generate_image_with_boxes(orig_image: Image, words: List[Word]):
+def cv_lines_draw(img, points, color, thickness=None, line_type=None, shift=None):
+    new_image = img.copy()
+    for index in range(len(points)-1):
+        new_image = cv2.line(
+            new_image, points[index], points[index+1], color=color, thickness=thickness, lineType=line_type, shift=shift
+        )
+    return new_image
+
+
+def generate_image_with_boxes(orig_image: np.ndarray, words: List[Word]):
     new_image = orig_image.copy()
-    draw = ImageDraw.Draw(new_image)
     index = 0
     word_letters = []
     for word in words:
@@ -162,17 +173,51 @@ def generate_image_with_boxes(orig_image: Image, words: List[Word]):
 
                 word_letter = letter.clone()
 
-                draw.line(word_letter.bounding_box.get_surrounding_line(), fill=color)
+                new_image = cv_lines_draw(new_image, word_letter.bounding_box.get_surrounding_line(), color=color)
                 word_letters.append(word_letter)
 
-            draw.line(word.bounding_box.get_surrounding_line(), fill=color)
+            new_image = cv_lines_draw(new_image, word.bounding_box.get_surrounding_line(), color=color)
         index += 1
-    del draw
     return new_image
 
 
+def generate_image_with_word_boxes(orig_image: np.ndarray, words: List[Word]):
+    new_image = orig_image.copy()
+    for word in words:
+        color = (0, 0, 0, 255)
+        new_image = cv_lines_draw(new_image, word.bounding_box.get_surrounding_line(), color=color)
+    return new_image
+
+
+def fix_holes_and_remove_noise(image):
+    kernel = np.ones((2, 2), np.uint8)
+    image = cv2.erode(image, kernel, iterations=2)
+    image = cv2.dilate(image, kernel, iterations=2)
+    return image
+
+
+def basic_matching():
+    image = cv2.imread(Locations.PAGE_TO_READ_PATH, cv2.IMREAD_GRAYSCALE).astype('float16')/256
+    letters_locations = dict()
+    letter_locations_image = np.zeros(shape=(1520, 1520))
+    for letter in os.listdir(LETTERS_PATCH_FOLDER):
+        letter_path = os.path.join(LETTERS_PATCH_FOLDER, letter)
+        letter_patch = cv2.imread(letter_path, cv2.IMREAD_GRAYSCALE).astype('float16')/256
+        # methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR',
+        #             'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED'
+        res = cv2.matchTemplate(image, letter_patch, cv2.TM_CCORR_NORMED)
+        res[res > 0.94] = 1
+        res[res < 1] = 0
+        letter_locations_image += res[:1520, :1520]
+        letters_locations[letter] = np.nonzero(res)
+
+    cv2.imshow('p', letter_locations_image)
+    cv2.imshow('image', image)
+    cv2.waitKey()
+
+
 def main():
-    orig_image = Image.open(Locations.PAGE_TO_READ_PATH)
+    orig_image = cv2.imread(Locations.PAGE_TO_READ_PATH)
 
     letters = generate_letter_boxes(orig_image)
     words = generate_word_boxes(orig_image)
@@ -182,10 +227,14 @@ def main():
     for word in words:
         word.match_letters_to_word_boxes()
 
-    generate_image_with_boxes(orig_image, words).show()
+    orig_image = generate_image_with_boxes(orig_image, words)
+    # orig_image = generate_image_with_word_boxes(orig_image, words)
+    orig_image = cv2.imshow('asd', orig_image)
+    cv2.waitKey()
 
     save_letter_images(orig_image, [letter for word in words for letter in word.letters])
 
 
 if __name__ == '__main__':
     main()
+    # basic_matching()
