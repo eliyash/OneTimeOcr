@@ -20,5 +20,4 @@ LETTERS_PATH = Path(r"C:\Workspace\MyOCR\EAST\test_pages\letters_app")
 
 
 def are_points_close(letter_location, location):
-    print(letter_location, location)
     return np.linalg.norm(np.array(location) - np.array(letter_location)) < MAX_DIST
