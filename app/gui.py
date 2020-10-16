@@ -1,8 +1,10 @@
+import random
 import tkinter as tk
 import tkinter.ttk as tkk
-from typing import Callable
+from typing import Callable, Dict
 from PIL import ImageTk, Image
 
+from app.colors import COLORS
 from app.marker_manager import MarkerManager
 from app.tools import are_points_close, BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
 
@@ -15,8 +17,7 @@ class Gui:
         self._image = Image.open(image_path)
         self._current_location = None
         self._current_main_letter = None
-
-        self._instances_locations_by_letters = dict()
+        self._instances_locations_by_letters = dict()  # type: Dict[Dict]
 
         self._window = tk.Tk()
         self._tk_image = ImageTk.PhotoImage(self._image)
@@ -45,8 +46,7 @@ class Gui:
         self._canvas.bind("<Button-3>", self._on_mouse_press_right)
         self._canvas.bind('<Motion>', self._on_mouse_motion)
 
-        self._main_markers_manager = MarkerManager(self._canvas, 'red', BOX_WIDTH_MARGIN + 2, BOX_HEIGHT_MARGIN + 3)
-        self._duplicate_marker_manager = MarkerManager(self._canvas, 'black', BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN)
+        self._main_markers_manager = MarkerManager(self._canvas, 'black', BOX_WIDTH_MARGIN + 2, BOX_HEIGHT_MARGIN + 3)
 
     def _reset_combo(self):
         self._current_main_letter = None
@@ -61,22 +61,21 @@ class Gui:
     def _set_active_main_letter(self, letter):
         if self._instances_locations_by_letters:
             self._set_combo(letter)
-            duplicate_lettres = self._instances_locations_by_letters[self._current_main_letter]
-            self._duplicate_marker_manager.set_all_letters(duplicate_lettres)
         else:
             self._reset_combo()
-            self._duplicate_marker_manager.remove_all_letters()
 
     def _get_indicating_letters(self):
         return set(self._instances_locations_by_letters.keys())
 
     def _remove_main_letter(self, letter):
-        self._instances_locations_by_letters.pop(letter)
+        marker_manager, _ = self._instances_locations_by_letters.pop(letter)
+        marker_manager.remove_all_letters()
         self._main_markers_manager.remove_letter(letter)
         self._set_active_main_letter(None)
 
     def _add_main_letter(self, letter_location):
-        self._instances_locations_by_letters[letter_location] = set()
+        marker_manager = MarkerManager(self._canvas, COLORS[random.randint(0, len(COLORS)-1)])
+        self._instances_locations_by_letters[letter_location] = (marker_manager, set())
         self._main_markers_manager.add_letter(letter_location)
         self._set_active_main_letter(letter_location)
 
@@ -87,7 +86,7 @@ class Gui:
         self._remove_main_letter(self._current_main_letter)
 
     def _on_look_for_duplicates(self):
-        self._look_for_dups_callback(self._instances_locations_by_letters)
+        self._look_for_dups_callback(set(self._instances_locations_by_letters.keys()))
 
     def _on_mouse_motion(self, event):
         self._current_location = (event.x, event.y)
@@ -97,18 +96,19 @@ class Gui:
 
     def _on_mouse_press_right(self, _):
         location = self._current_location
-        letters_locations = self._instances_locations_by_letters[self._current_main_letter]
+        marker_manager, letters_locations = self._instances_locations_by_letters[self._current_main_letter]
         for letter_location in letters_locations:
             if are_points_close(letter_location, location):
-                self._duplicate_marker_manager.remove_letter(letter_location)
+                marker_manager.remove_letter(letter_location)
 
     def _on_combo_selected(self, _):
         x, y = (int(val_as_string) for val_as_string in self._combo.get().split(' '))
         self._set_active_main_letter((x, y))
 
     def set_duplicate_letters(self, letter, locations):
-        self._instances_locations_by_letters[letter] = locations
-        self._duplicate_marker_manager.set_all_letters(locations)
+        marker_manager, _ = self._instances_locations_by_letters[letter]
+        marker_manager.set_all_letters(locations)
+        self._instances_locations_by_letters[letter] = (marker_manager, locations)
 
     def run(self):
         self._window.mainloop()

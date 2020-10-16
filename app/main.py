@@ -10,9 +10,9 @@ class App:
     def __init__(self):
         self._gui = Gui(IMAGE_PATH, LETTERS_PATH, self._on_save_letters, self._on_save_letters)
 
-    def _on_save_letters(self, letters_centers: Dict[Tuple, np.ndarray]):
+    def _on_save_letters(self, letters_centers: Tuple):
         image = cv2.imread(IMAGE_PATH, cv2.IMREAD_GRAYSCALE).astype('float16') / 256
-        for key in list(letters_centers.keys()):
+        for key in letters_centers:
             (x_center, y_center) = key
             letter_image = image[
                 y_center - BOX_HEIGHT_MARGIN:
@@ -46,7 +46,6 @@ class App:
             [(x_center, y_center), res[x_center, y_center]]
             for x_center, y_center in np.transpose(np.nonzero(above_mat))
         ]
-        print(locations_by_values)
         return locations_by_values
 
     def run(self):

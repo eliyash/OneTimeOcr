@@ -1,5 +1,8 @@
+from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
+
+
 class MarkerManager:
-    def __init__(self, canvas, color, box_width_margin, box_height_margin):
+    def __init__(self, canvas, color, box_width_margin=BOX_WIDTH_MARGIN, box_height_margin=BOX_HEIGHT_MARGIN):
         self._instances_locations = set()
         self._canvas = canvas
         self._color = color
