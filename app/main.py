@@ -8,7 +8,7 @@ from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, are_points_close, IMA
 
 class App:
     def __init__(self):
-        self._gui = Gui(IMAGE_PATH, LETTERS_PATH, self._on_save_letters)
+        self._gui = Gui(IMAGE_PATH, LETTERS_PATH, self._on_save_letters, self._on_save_letters)
 
     def _on_save_letters(self, letters_centers: Dict[Tuple, np.ndarray]):
         image = cv2.imread(IMAGE_PATH, cv2.IMREAD_GRAYSCALE).astype('float16') / 256

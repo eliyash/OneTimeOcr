@@ -8,7 +8,8 @@ from app.tools import are_points_close, BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
 
 
 class Gui:
-    def __init__(self, image_path, letters_path, save_letters_callback: Callable):
+    def __init__(self, image_path, letters_path, look_for_dups_callback: Callable, save_letters_callback: Callable):
+        self._look_for_dups_callback = look_for_dups_callback
         self._save_letters_callback = save_letters_callback
         self._letters_path = letters_path
         self._image = Image.open(image_path)
@@ -19,19 +20,25 @@ class Gui:
 
         self._window = tk.Tk()
         self._tk_image = ImageTk.PhotoImage(self._image)
-        self._save_button = tk.Button(self._window, text="look for duplicates", command=self._on_look_for_duplicates)
-        self._save_button.pack()
+        self._top_bar = tk.Frame(self._window)
+        self._top_bar.pack(side=tk.TOP)
 
-        self._clear_button = tk.Button(self._window, text="clear chosen main letter", command=self._on_clear_letters)
-        self._clear_button.pack()
+        self._save_button = tk.Button(self._top_bar, text="save lettres", command=self._on_save_all_letters)
+        self._save_button.pack(side=tk.LEFT)
 
-        self._combo = tkk.Combobox(self._window)
-        self._combo.pack()
+        self._look_for_dup_button = tk.Button(self._top_bar, text="look for duplicates", command=self._on_look_for_duplicates)
+        self._look_for_dup_button.pack(side=tk.LEFT)
+
+        self._clear_button = tk.Button(self._top_bar, text="clear chosen main letter", command=self._on_clear_letters)
+        self._clear_button.pack(side=tk.LEFT)
+
+        self._combo = tkk.Combobox(self._top_bar)
+        self._combo.pack(side=tk.LEFT)
         self._combo.bind('<<ComboboxSelected>>', self._on_combo_selected)
 
         width, height = self._image.size
         self._canvas = tk.Canvas(self._window, width=width, height=height)
-        self._canvas.pack()
+        self._canvas.pack(side=tk.BOTTOM)
         self._canvas.create_image(0, 0, image=self._tk_image, anchor=tk.NW)
 
         self._canvas.bind("<Button-1>", self._on_mouse_press_left)
@@ -73,11 +80,14 @@ class Gui:
         self._main_markers_manager.add_letter(letter_location)
         self._set_active_main_letter(letter_location)
 
+    def _on_save_all_letters(self):
+        self._remove_main_letter(self._current_main_letter)
+
     def _on_clear_letters(self):
         self._remove_main_letter(self._current_main_letter)
 
     def _on_look_for_duplicates(self):
-        self._save_letters_callback(self._instances_locations_by_letters)
+        self._look_for_dups_callback(self._instances_locations_by_letters)
 
     def _on_mouse_motion(self, event):
         self._current_location = (event.x, event.y)
