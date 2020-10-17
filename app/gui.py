@@ -6,17 +6,25 @@ from PIL import ImageTk, Image
 
 from app.colors import COLORS
 from app.marker_manager import MarkerManager
-from app.tools import are_points_close, BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
+from app.tools import are_points_close, BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, NUM_OF_LETTERS
 
 
 class Gui:
-    def __init__(self, image_path, look_for_dups_callback: Callable, save_letters_callback: Callable):
+    def __init__(
+            self,
+            image_path: str,
+            get_image_patch: Callable,
+            look_for_dups_callback: Callable,
+            save_letters_callback: Callable
+    ):
+        self._get_image_patch = get_image_patch
         self._look_for_dups_callback = look_for_dups_callback
         self._save_letters_callback = save_letters_callback
         self._image = Image.open(image_path)
         self._current_location = None
         self._current_main_letter = None
         self._instances_locations_by_letters = dict()  # type: Dict[Dict]
+        self._image_by_letters = dict()  # type: Dict
 
         self._window = tk.Tk()
         self._tk_image = ImageTk.PhotoImage(self._image)
@@ -29,33 +37,48 @@ class Gui:
         self._look_for_dup_button = tk.Button(self._top_bar, text="look for duplicates", command=self._on_look_for_duplicates)
         self._look_for_dup_button.pack(side=tk.LEFT)
 
-        self._clear_button = tk.Button(self._top_bar, text="clear chosen main letter", command=self._on_clear_letters)
+        self._clear_button = tk.Button(self._top_bar, text="remove main letter", command=self._on_clear_letters)
         self._clear_button.pack(side=tk.LEFT)
 
         self._combo = tkk.Combobox(self._top_bar)
         self._combo.pack(side=tk.LEFT)
         self._combo.bind('<<ComboboxSelected>>', self._on_combo_selected)
 
+        self._bottom_bar = tk.Frame(self._window)
+        self._bottom_bar.pack(side=tk.BOTTOM)
+
         width, height = self._image.size
-        self._canvas = tk.Canvas(self._window, width=width, height=height)
-        self._canvas.pack(side=tk.BOTTOM)
+        self._canvas = tk.Canvas(self._bottom_bar, width=width, height=height)
+        self._canvas.pack(side=tk.LEFT)
         self._canvas.create_image(0, 0, image=self._tk_image, anchor=tk.NW)
 
         self._canvas.bind("<Button-1>", self._on_mouse_press_left)
         self._canvas.bind("<Button-3>", self._on_mouse_press_right)
         self._canvas.bind('<Motion>', self._on_mouse_motion)
 
+        self._duplicates = tk.Scale(self._top_bar, from_=1, to=200, orient=tk.HORIZONTAL)
+        self._duplicates.set(NUM_OF_LETTERS)
+        self._duplicates.pack()
+
+        # self._scrollbar = tk.Scrollbar(self._bottom_bar, orient=tk.VERTICAL)
+        # self._scrollbar.pack(side=tk.RIGHT)
+        # self._scrollbar.config(command=self._canvas.yview)
+
+        self._chosen_letter_markers_manager = MarkerManager(self._canvas, 'green', BOX_WIDTH_MARGIN + 4, BOX_HEIGHT_MARGIN + 6)
         self._main_markers_manager = MarkerManager(self._canvas, 'black', BOX_WIDTH_MARGIN + 2, BOX_HEIGHT_MARGIN + 3)
 
     def _reset_combo(self):
         self._current_main_letter = None
         self._combo['values'] = (' ',)
         self._combo.current(0)
+        self._chosen_letter_markers_manager.remove_all_letters()
 
     def _set_combo(self, letter):
         self._current_main_letter = letter if letter else list(self._instances_locations_by_letters.keys())[0]
         self._combo['values'] = tuple(self._instances_locations_by_letters.keys())
         self._combo.current(self._combo['values'].index(self._current_main_letter))
+        self._chosen_letter_markers_manager.remove_all_letters()
+        self._chosen_letter_markers_manager.add_letter(self._current_main_letter)
 
     def _set_active_main_letter(self, letter):
         if self._instances_locations_by_letters:
@@ -78,11 +101,17 @@ class Gui:
         self._main_markers_manager.add_letter(letter_location)
         self._set_active_main_letter(letter_location)
 
+    def _set_duplicate_letters(self, letter, locations):
+        marker_manager, _ = self._instances_locations_by_letters[letter]
+        marker_manager.set_all_letters(locations)
+        self._instances_locations_by_letters[letter] = (marker_manager, locations)
+
     def _on_save_all_letters(self):
         self._save_letters_callback(self._instances_locations_by_letters)
 
     def _on_look_for_duplicates(self):
-        self._look_for_dups_callback(set(self._instances_locations_by_letters.keys()))
+        locations = self._look_for_dups_callback(self._current_main_letter, self._duplicates.get())
+        self._set_duplicate_letters(self._current_main_letter, locations)
 
     def _on_clear_letters(self):
         self._remove_main_letter(self._current_main_letter)
@@ -103,11 +132,6 @@ class Gui:
     def _on_combo_selected(self, _):
         x, y = (int(val_as_string) for val_as_string in self._combo.get().split(' '))
         self._set_active_main_letter((x, y))
-
-    def set_duplicate_letters(self, letter, locations):
-        marker_manager, _ = self._instances_locations_by_letters[letter]
-        marker_manager.set_all_letters(locations)
-        self._instances_locations_by_letters[letter] = (marker_manager, locations)
 
     def run(self):
         self._window.mainloop()
