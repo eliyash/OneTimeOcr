@@ -10,10 +10,9 @@ from app.tools import are_points_close, BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
 
 
 class Gui:
-    def __init__(self, image_path, letters_path, look_for_dups_callback: Callable, save_letters_callback: Callable):
+    def __init__(self, image_path, look_for_dups_callback: Callable, save_letters_callback: Callable):
         self._look_for_dups_callback = look_for_dups_callback
         self._save_letters_callback = save_letters_callback
-        self._letters_path = letters_path
         self._image = Image.open(image_path)
         self._current_location = None
         self._current_main_letter = None
@@ -80,13 +79,13 @@ class Gui:
         self._set_active_main_letter(letter_location)
 
     def _on_save_all_letters(self):
-        self._remove_main_letter(self._current_main_letter)
-
-    def _on_clear_letters(self):
-        self._remove_main_letter(self._current_main_letter)
+        self._save_letters_callback(self._instances_locations_by_letters)
 
     def _on_look_for_duplicates(self):
         self._look_for_dups_callback(set(self._instances_locations_by_letters.keys()))
+
+    def _on_clear_letters(self):
+        self._remove_main_letter(self._current_main_letter)
 
     def _on_mouse_motion(self, event):
         self._current_location = (event.x, event.y)

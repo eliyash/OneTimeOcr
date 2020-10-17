@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import cv2
 import numpy as np
-from typing import Dict, Tuple
+from typing import Set, Dict
 from app.gui import Gui
 from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, are_points_close, IMAGE_PATH, LETTERS_PATH, \
     MAX_LETTER_INCIDENTS, NUM_OF_LETTERS
@@ -8,10 +10,12 @@ from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, are_points_close, IMA
 
 class App:
     def __init__(self):
-        self._gui = Gui(IMAGE_PATH, LETTERS_PATH, self._on_save_letters, self._on_save_letters)
+        self._image = cv2.imread(IMAGE_PATH, cv2.IMREAD_GRAYSCALE).astype('float16') / 256
+        self._gui = Gui(IMAGE_PATH, self._look_for_duplicates, self._on_save_letters)
 
-    def _on_save_letters(self, letters_centers: Tuple):
-        image = cv2.imread(IMAGE_PATH, cv2.IMREAD_GRAYSCALE).astype('float16') / 256
+    @staticmethod
+    def _get_letters_images(letters_centers: Set, image: np.ndarray):
+        letter_images = []
         for key in letters_centers:
             (x_center, y_center) = key
             letter_image = image[
@@ -20,8 +24,22 @@ class App:
                 x_center - BOX_WIDTH_MARGIN:
                 x_center + BOX_WIDTH_MARGIN
             ]
+            letter_images.append(letter_image)
+        return letter_images
 
-            nw_locations = self._basic_matching_new(image, letter_image)
+    def _on_save_letters(self, letters_centers: Dict):
+        folder_to_save = Path(LETTERS_PATH)
+        for main_letter, (_, locations_of_duplicate_letters) in letters_centers.items():
+            letters_folder = folder_to_save / '_'.join([str(i) for i in main_letter])
+            letters_folder.mkdir(parents=True, exist_ok=True)
+            images_of_duplicated_letters = self._get_letters_images(locations_of_duplicate_letters, self._image)
+            for index, letter_image in enumerate(images_of_duplicated_letters):
+                cv2.imwrite(str(letters_folder / '{}.jpg'.format(index)), (letter_image*256).astype('uint8'))
+
+    def _look_for_duplicates(self, letters_centers: Set):
+        images_of_duplicated_letters = self._get_letters_images(letters_centers, self._image)
+        for key, letter_image in zip(letters_centers, images_of_duplicated_letters):
+            nw_locations = self._basic_matching_new(self._image, letter_image)
             nw_locations.sort(key=lambda v: v[1], reverse=True)
             to_add = []
             to_check = nw_locations
