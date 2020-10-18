@@ -3,6 +3,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 from typing import Set, Dict, Tuple
+
+from app.data_model import DataModel
 from app.gui import Gui
 from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, are_points_close, IMAGE_PATH, LETTERS_PATH, \
     MAX_LETTER_INCIDENTS
@@ -10,8 +12,15 @@ from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, are_points_close, IMA
 
 class App:
     def __init__(self):
+        self._data_model = DataModel(IMAGE_PATH)
         self._image = cv2.imread(IMAGE_PATH, cv2.IMREAD_GRAYSCALE).astype('float16') / 256
-        self._gui = Gui(IMAGE_PATH, self._get_image_patch, self._look_for_duplicates, self._on_save_letters)
+        self._gui = Gui(
+            self._data_model,
+            self._get_image_patch,
+            self._look_for_duplicates,
+            self._on_save_letters,
+            lambda locations: self._get_letters_images(self._image, locations)
+        )
 
     @staticmethod
     def _get_image_patch(image, key):

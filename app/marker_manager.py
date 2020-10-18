@@ -6,7 +6,6 @@ class MarkerManager:
         self._instances_locations = set()
         self._canvas = canvas
         self._color = color
-        self._canvas = canvas
         self._box_width_margin = box_width_margin
         self._box_height_margin = box_height_margin
 
