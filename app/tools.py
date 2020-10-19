@@ -10,11 +10,6 @@ NUM_OF_LETTERS = 20
 
 IMAGE_PATH = r"C:\Workspace\MyOCR\EAST\test_pages\Screenshot 2020-10-11 232042.jpg"
 LETTERS_PATH = Path(r"C:\Workspace\MyOCR\EAST\test_pages\letters_app")
-
-# MAX_DIST = 20
-# BOX_HEIGHT_MARGIN = 20
-# BOX_WIDTH_MARGIN = 16
-#
 # IMAGE_PATH = r"C:\Workspace\MyOCR\identifieng letters\data\books\handwriting1.jpg"
 # LETTERS_PATH = Path(r"C:\Workspace\MyOCR\EAST\test_pages\hand")
 
