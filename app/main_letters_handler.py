@@ -1,14 +1,13 @@
 import random
 import tkinter.ttk as tkk
 import tkinter as tk
-
-from app.colors import COLORS
 from app.marker_manager import MarkerManager
 from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
 
 
 class MainLettersHandler:
     def __init__(self, data_model, top_bar, canvas):
+        random.seed(0)
         self._data_model = data_model
         self._top_bar = top_bar
         self._canvas = canvas
@@ -23,11 +22,15 @@ class MainLettersHandler:
         self._main_markers_manager = MarkerManager(self._canvas, 'black', BOX_WIDTH_MARGIN + 2, BOX_HEIGHT_MARGIN + 3)
         self._chosen_letter_markers_manager = MarkerManager(self._canvas, 'green', BOX_WIDTH_MARGIN + 4, BOX_HEIGHT_MARGIN + 6)
 
+    @staticmethod
+    def _get_random_color():
+        return '#' + ''.join(['{:02x}'.format(random.randint(0, 255)) for _ in range(3)])
+
     def _on_clear_letters(self):
         self._remove_main_letter(self._data_model.current_main_letter)
 
     def add_main_letter(self, letter_location):
-        marker_manager = MarkerManager(self._canvas, COLORS[random.randint(0, len(COLORS) - 1)])
+        marker_manager = MarkerManager(self._canvas, self._get_random_color())
         self._data_model.instances_locations_by_letters[letter_location] = (marker_manager, set())
         self._main_markers_manager.add_letter(letter_location)
         self._set_active_main_letter(letter_location)

@@ -60,10 +60,6 @@ class Gui:
 
         self._main_letters_handler = MainLettersHandler(self._data_model, self._top_bar, self._canvas)
 
-        # self._scrollbar = tk.Scrollbar(self._bottom_bar, orient=tk.VERTICAL)
-        # self._scrollbar.pack(side=tk.RIGHT)
-        # self._scrollbar.config(command=self._canvas.yview)
-
     def _set_duplicate_letters(self, letter, locations):
         marker_manager, _ = self._data_model.instances_locations_by_letters[letter]
         marker_manager.set_all_letters(locations)
