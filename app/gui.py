@@ -4,6 +4,7 @@ from typing import Callable
 from PIL import ImageTk
 
 from app.data_model import DataModel
+from app.letter_images import LettersImagesFrame
 from app.main_letters_handler import MainLettersHandler
 from app.tools import are_points_close, NUM_OF_LETTERS
 
@@ -45,12 +46,6 @@ class Gui:
         self._canvas.pack(side=tk.LEFT)
         self._canvas.create_image(0, 0, image=self._tk_image, anchor=tk.NW)
 
-        self._canvas2 = tk.Canvas(self._letters_frame, width=width, height=height)
-        self._canvas2.pack(side=tk.LEFT)
-        self._canvas2.create_image(0, 0, image=self._tk_image, anchor=tk.NW)
-
-        self._text_frame.tkraise()
-        # self._letters_frame.tkraise()
         self._canvas.bind("<Button-1>", self._on_mouse_press_left)
         self._canvas.bind("<Button-3>", self._on_mouse_press_right)
 
@@ -59,6 +54,14 @@ class Gui:
         self._duplicates.pack(side=tk.LEFT)
 
         self._main_letters_handler = MainLettersHandler(self._data_model, self._top_bar, self._canvas)
+
+        self._main_letters_frame = LettersImagesFrame(self._data_model, self._get_image_patch, self._letters_frame)
+
+        self._switch_mode = tk.Button(self._top_bar, text="switch mode", command=self._on_switch_apps)
+        self._switch_mode.pack(side=tk.LEFT)
+
+        self._is_normal_mode = True
+        self._text_frame.tkraise()
 
     def _set_duplicate_letters(self, letter, locations):
         marker_manager, _ = self._data_model.instances_locations_by_letters[letter]
@@ -81,6 +84,15 @@ class Gui:
         for letter_location in letters_locations:
             if are_points_close(letter_location, (event.x, event.y)):
                 marker_manager.remove_letter(letter_location)
+
+    def _on_switch_apps(self):
+        if self._is_normal_mode:
+            self._letters_frame.tkraise()
+            self._main_letters_frame.show_images()
+        else:
+            self._text_frame.tkraise()
+
+        self._is_normal_mode = not self._is_normal_mode
 
     def run(self):
         self._window.mainloop()
