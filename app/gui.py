@@ -54,7 +54,8 @@ class Gui:
         self._duplicates.set(NUM_OF_LETTERS)
         self._duplicates.pack(side=tk.LEFT)
 
-        self._main_letters_handler = MainLettersHandler(self._data_model, self._top_bar, self._canvas)
+        self._main_letters_handler = \
+            MainLettersHandler(self._data_model, self._top_bar, self._canvas, self._get_image_patch)
 
         self._main_letters_frame = LettersImagesFrame(self._data_model, self._get_image_patch, self._letters_frame)
 

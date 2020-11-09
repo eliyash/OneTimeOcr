@@ -1,18 +1,23 @@
 import random
 import tkinter.ttk as tkk
 import tkinter as tk
-from typing import Dict, Tuple, Set
+from typing import Dict, Tuple, Set, Callable
+import numpy as np
+from PIL import ImageTk, Image
 
 from app.data_model import DataModel
 from app.marker_manager import MarkerManager, SimpleMarkerDrawer
 from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
 
+EMPTY_IMAGE = np.ones((BOX_HEIGHT_MARGIN*2, BOX_WIDTH_MARGIN*2)) * 255
+
 
 class MainLettersHandler:
-    def __init__(self, data_model: DataModel, top_bar, canvas):
+    def __init__(self, data_model: DataModel, top_bar, canvas, get_image_patch: Callable):
         random.seed(0)
 
         self._data_model = data_model
+        self._get_image_patch = get_image_patch
 
         # locals
         self._letters_markers_managers = dict()  # type: Dict[Tuple, SimpleMarkerDrawer]
@@ -27,6 +32,10 @@ class MainLettersHandler:
         self._clear_button = tk.Button(self._top_bar, text="remove main letter", command=self._on_clear_letters)
         self._clear_button.pack(side=tk.LEFT)
 
+        self._cv_image = np.array(self._data_model.image)
+        self._chosen_letter_image = tk.Label(self._top_bar)
+        self._chosen_letter_image.pack(side=tk.LEFT)
+
         self._main_markers_manager = MarkerManager(
             self._data_model.main_letters,
             self._canvas, 'black', BOX_WIDTH_MARGIN + 2, BOX_HEIGHT_MARGIN + 3
@@ -37,8 +46,19 @@ class MainLettersHandler:
             self._canvas, 'green', BOX_WIDTH_MARGIN + 4, BOX_HEIGHT_MARGIN + 6
         )
 
+        self._set_chosen_letter_image(None)
         self._data_model.instances_locations_by_letters.attach(self.set_marker_managers_for_duplicates)
         self._data_model.current_main_letter.attach(self._set_active_main_letter)
+        self._data_model.current_main_letter.attach(self._set_chosen_letter_image)
+
+    def _set_chosen_letter_image(self, letter):
+        if letter:
+            cv_letter_image = self._get_image_patch(self._cv_image, list(letter)[0])
+        else:
+            cv_letter_image = EMPTY_IMAGE
+        tk_letter_image = ImageTk.PhotoImage(Image.fromarray(cv_letter_image))
+        self._chosen_letter_image.config(image=tk_letter_image)
+        self._chosen_letter_image.image = tk_letter_image
 
     @staticmethod
     def _get_random_color():
@@ -56,8 +76,8 @@ class MainLettersHandler:
     def _remove_main_letter(self, letter):
         main_letters = self._data_model.main_letters.data  # type: Set
         main_letters -= letter
-        self._data_model.main_letters.data = main_letters
         self._data_model.current_main_letter.data = {list(main_letters)[0]} if main_letters else set()
+        self._data_model.main_letters.data = main_letters
 
     def _set_active_main_letter(self, letter):
         if letter:
@@ -70,8 +90,10 @@ class MainLettersHandler:
         self._combo.current(0)
 
     def _set_combo(self, letter):
-        self._combo['values'] = tuple(self._data_model.main_letters.data)
-        self._combo.current(self._combo['values'].index(letter))
+        values = tuple(self._data_model.main_letters.data)
+        index = values.index(letter)
+        self._combo['values'] = values
+        self._combo.current(index)
 
     def _on_combo_selected(self, _):
         x, y = (int(val_as_string) for val_as_string in self._combo.get().split(' '))

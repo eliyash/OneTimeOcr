@@ -31,7 +31,8 @@ class DataModel:
         [map_letters.update({letter_to_add: set()}) for letter_to_add in letters_to_add]
         self.instances_locations_by_letters.data = map_letters
 
-    def set_current_location_duplicates(self, new_main_letter):
+    def set_current_location_duplicates(self, _):
+        new_main_letter = self.current_main_letter.data
         if new_main_letter:
             location_new_letter = list(new_main_letter)[0]
             new_current_location_duplicates = self.instances_locations_by_letters.data[location_new_letter]

@@ -51,6 +51,6 @@ class LettersImagesFrame:
             cv_letter_image = self._get_image_patch(cv_image, location)
             tk_letter_image = ImageTk.PhotoImage(Image.fromarray(cv_letter_image))
             label = tk.Label(self._currentFrame, image=tk_letter_image)
-            label.bind("<Button-1>", self._get_del_image_function(label, location))
             label.image = tk_letter_image
+            label.bind("<Button-1>", self._get_del_image_function(label, location))
             label.grid(row=row, column=column)
