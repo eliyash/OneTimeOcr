@@ -12,11 +12,13 @@ class MainLettersHandler:
     def __init__(self, data_model: DataModel, top_bar, canvas):
         random.seed(0)
 
+        self._data_model = data_model
+
+        # locals
+        self._letters_markers_managers = dict()  # type: Dict[Tuple, SimpleMarkerDrawer]
+
         self._top_bar = top_bar
         self._canvas = canvas
-
-        # local
-        self._letters_markers_managers = dict()  # type: Dict[Tuple, SimpleMarkerDrawer]
 
         self._combo = tkk.Combobox(self._top_bar)
         self._combo.pack(side=tk.LEFT)

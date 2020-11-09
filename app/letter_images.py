@@ -32,9 +32,15 @@ class LettersImagesFrame:
         self._currentFrame = tk.Frame(self._frame)
         self._currentFrame.grid(row=0, column=0)
 
-    @staticmethod
-    def _get_del_image(label):
-        return lambda e: label.destroy()
+    def _del_image(self, label, location):
+        label.destroy()
+        main_letter = list(self._data_model.current_main_letter.data)[0]
+        data = self._data_model.instances_locations_by_letters.data
+        data[main_letter].remove(location)
+        self._data_model.instances_locations_by_letters.data = data
+
+    def _get_del_image_function(self, label, location):
+        return lambda e: self._del_image(label, location)
 
     def show_images(self, current_location_duplicates):
         self._remove_images()
@@ -45,6 +51,6 @@ class LettersImagesFrame:
             cv_letter_image = self._get_image_patch(cv_image, location)
             tk_letter_image = ImageTk.PhotoImage(Image.fromarray(cv_letter_image))
             label = tk.Label(self._currentFrame, image=tk_letter_image)
-            label.bind("<Button-1>", self._get_del_image(label))
+            label.bind("<Button-1>", self._get_del_image_function(label, location))
             label.image = tk_letter_image
             label.grid(row=row, column=column)
