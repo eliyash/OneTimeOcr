@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter.filedialog import askdirectory
 from typing import Callable
 
 from PIL import ImageTk
@@ -64,7 +65,8 @@ class Gui:
         self._text_frame.tkraise()
 
     def _on_save_all_letters(self):
-        self._save_letters_callback(self._data_model.instances_locations_by_letters.data)
+        folder = askdirectory()
+        self._save_letters_callback(folder, self._data_model.instances_locations_by_letters.data)
 
     def _on_look_for_duplicates(self):
         current_main_letter = list(self._data_model.current_main_letter.data)[0]

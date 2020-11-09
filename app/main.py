@@ -1,5 +1,7 @@
+import time
 from pathlib import Path
 
+import json
 import cv2
 import numpy as np
 from typing import Set, Dict, Tuple
@@ -39,14 +41,34 @@ class App:
             letter_images.append(letter_image)
         return letter_images
 
-    def _on_save_letters(self, letters_centers: Dict):
-        folder_to_save = Path(LETTERS_PATH)
-        for main_letter, (_, locations_of_duplicate_letters) in letters_centers.items():
-            letters_folder = folder_to_save / '_'.join([str(i) for i in main_letter])
+    @staticmethod
+    def _location_to_str(location: Tuple):
+        return '_'.join([str(i) for i in location])
+
+    @classmethod
+    def _all_locations_to_str(cls, letters_centers_dict: Dict):
+        letters_centers_as_str = {
+            cls._location_to_str(main_letter): [cls._location_to_str(duplicate)for duplicate in duplicates]
+            for main_letter, duplicates in letters_centers_dict.items()
+        }
+        return letters_centers_as_str
+
+    def _on_save_letters(self, folder, letters_centers: Dict):
+        time_str = time.strftime("%Y%m%d-%H%M%S")
+        folder_to_save = Path(folder if folder else LETTERS_PATH) / time_str
+        folder_to_save.mkdir(exist_ok=True, parents=True)
+        all_locations_to_str = self._all_locations_to_str(letters_centers)
+        with open(str(folder_to_save / 'letters_centers.json'), 'w') as fp:
+            json.dump(all_locations_to_str, fp)
+
+        for main_letter, locations_of_duplicate_letters in letters_centers.items():
+            letters_folder = folder_to_save / self._location_to_str(main_letter)
             letters_folder.mkdir(parents=True, exist_ok=True)
             images_of_duplicated_letters = self._get_letters_images(locations_of_duplicate_letters, self._image)
-            for index, letter_image in enumerate(images_of_duplicated_letters):
-                cv2.imwrite(str(letters_folder / '{}.jpg'.format(index)), (letter_image*256).astype('uint8'))
+            for letter_location, letter_image in zip(locations_of_duplicate_letters, images_of_duplicated_letters):
+                image_as_uint = (letter_image*256).astype('uint8')
+                file_name = letters_folder / '{}.jpg'.format(self._location_to_str(letter_location))
+                cv2.imwrite(str(file_name), image_as_uint)
 
     def _look_for_duplicates(self, letter_center: Tuple, num_of_letters: int):
         images_of_duplicated_letters = self._get_image_patch(self._image, letter_center)
