@@ -1,13 +1,19 @@
+from typing import Set
+
+from app.observers import Subject
 from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
 
 
-class MarkerManager:
+class MarkerDrawer:
     def __init__(self, canvas, color, box_width_margin=BOX_WIDTH_MARGIN, box_height_margin=BOX_HEIGHT_MARGIN):
-        self._instances_locations = set()
+        self._local_instances_locations = set()
         self._canvas = canvas
         self._color = color
         self._box_width_margin = box_width_margin
         self._box_height_margin = box_height_margin
+
+    def __del__(self):
+        self._update_letters(set())
 
     def _add_a_box(self, location):
         x_center, y_center = location
@@ -23,19 +29,25 @@ class MarkerManager:
     def _remove_a_box(self, location):
         self._canvas.delete(location + (self._color,))
 
-    def add_letter(self, location):
-        self._instances_locations.add(location)
-        self._add_a_box(location)
+    def _update_letters(self, updated_letters: Set):
+        letters_to_remove = self._local_instances_locations - updated_letters
+        letters_to_add = updated_letters - self._local_instances_locations
+        [self._remove_a_box(letter_to_remove) for letter_to_remove in letters_to_remove]
+        [self._add_a_box(letter_to_add) for letter_to_add in letters_to_add]
+        self._local_instances_locations = updated_letters.copy()
 
-    def remove_letter(self, letter_location):
-        self._instances_locations.remove(letter_location)
-        self._remove_a_box(letter_location)
 
-    def set_all_letters(self, letters):
-        self.remove_all_letters()
-        for letter in letters:
-            self.add_letter(letter)
+class MarkerManager(MarkerDrawer):
+    def __init__(self, instances_locations_observer: Subject, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._instances_locations = instances_locations_observer
+        self._instances_locations.attach(self._update_letters)
 
-    def remove_all_letters(self):
-        for letter in self._instances_locations:
-            self._remove_a_box(letter)
+    def __del__(self):
+        self._instances_locations.detach(self._update_letters)
+        super().__del__()
+
+
+class SimpleMarkerDrawer(MarkerDrawer):
+    def update_letters(self, updated_letters: Set):
+        self._update_letters(updated_letters)

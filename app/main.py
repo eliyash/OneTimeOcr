@@ -60,9 +60,14 @@ class App:
             to_check = [location for location in to_check if not are_points_close(location[0], new_point[0])]
 
         to_add = to_add[:num_of_letters]
-        found_locations = [(x_center + BOX_WIDTH_MARGIN, y_center + BOX_HEIGHT_MARGIN)
-                           for (y_center, x_center), val in to_add]
-        return found_locations
+        found_locations = {(x_center + BOX_WIDTH_MARGIN, y_center + BOX_HEIGHT_MARGIN)
+                           for (y_center, x_center), val in to_add}
+        self._set_duplicate_letters(letter_center, found_locations)
+
+    def _set_duplicate_letters(self, letter, locations):
+        data = self._data_model.instances_locations_by_letters.data
+        data[letter] = locations
+        self._data_model.instances_locations_by_letters.data = data
 
     @staticmethod
     def _basic_matching_new(image, letter_patch, number_letters=MAX_LETTER_INCIDENTS):

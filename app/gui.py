@@ -63,32 +63,26 @@ class Gui:
         self._is_normal_mode = True
         self._text_frame.tkraise()
 
-    def _set_duplicate_letters(self, letter, locations):
-        marker_manager, _ = self._data_model.instances_locations_by_letters[letter]
-        marker_manager.set_all_letters(locations)
-        self._data_model.instances_locations_by_letters[letter] = (marker_manager, locations)
-
     def _on_save_all_letters(self):
-        self._save_letters_callback(self._data_model.instances_locations_by_letters)
+        self._save_letters_callback(self._data_model.instances_locations_by_letters.data)
 
     def _on_look_for_duplicates(self):
-        current_main_letter = self._data_model.current_main_letter
-        locations = self._look_for_dups_callback(current_main_letter, self._duplicates.get())
-        self._set_duplicate_letters(current_main_letter, locations)
+        current_main_letter = list(self._data_model.current_main_letter.data)[0]
+        self._look_for_dups_callback(current_main_letter, self._duplicates.get())
 
     def _on_mouse_press_left(self, event):
         self._main_letters_handler.add_main_letter((event.x, event.y))
 
     def _on_mouse_press_right(self, event):
-        marker_manager, letters_locations = self._data_model.main_locations
-        for letter_location in letters_locations:
+        letters_locations = self._data_model.main_letters.data
+        for letter_location in letters_locations.copy():
             if are_points_close(letter_location, (event.x, event.y)):
-                marker_manager.remove_letter(letter_location)
+                letters_locations.remove(letter_location)
+        self._data_model.main_letters.data = letters_locations
 
     def _on_switch_apps(self):
         if self._is_normal_mode:
             self._letters_frame.tkraise()
-            self._main_letters_frame.show_images()
         else:
             self._text_frame.tkraise()
 

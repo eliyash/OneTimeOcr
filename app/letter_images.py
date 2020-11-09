@@ -22,6 +22,7 @@ class LettersImagesFrame:
         self._tk_image = ImageTk.PhotoImage(self._data_model.image)
         self._currentFrame = None
         self._create_new_frame()
+        self._data_model.current_location_duplicates.attach(self.show_images)
 
     def _remove_images(self):
         self._currentFrame.destroy()
@@ -35,14 +36,10 @@ class LettersImagesFrame:
     def _get_del_image(label):
         return lambda e: label.destroy()
 
-    def show_images(self):
+    def show_images(self, current_location_duplicates):
         self._remove_images()
         cv_image = np.array(self._data_model.image)
-        data = self._data_model.current_location_duplicates
-        if not data:
-            return
-
-        for i, location in enumerate(data[1]):
+        for i, location in enumerate(current_location_duplicates):
             row = i // self._letters_in_a_row
             column = i % self._letters_in_a_row
             cv_letter_image = self._get_image_patch(cv_image, location)
