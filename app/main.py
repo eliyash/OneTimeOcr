@@ -10,6 +10,8 @@ from app.data_model import DataModel
 from app.gui import Gui
 from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, are_points_close, IMAGE_PATH, LETTERS_PATH, \
     MAX_LETTER_INCIDENTS
+from letter_classifier.identify_letter import identify_letters
+from letter_detector.find_centers import detect_letters
 
 
 class App:
@@ -20,6 +22,7 @@ class App:
             self._data_model,
             self._get_image_patch,
             self._look_for_duplicates,
+            self._network_detect,
             self._on_save_letters,
             lambda locations: self._get_letters_images(self._image, locations)
         )
@@ -69,6 +72,16 @@ class App:
                 image_as_uint = (letter_image*256).astype('uint8')
                 file_name = letters_folder / '{}.jpg'.format(self._location_to_str(letter_location))
                 cv2.imwrite(str(file_name), image_as_uint)
+
+    def _network_detect(self):
+        found_locations = detect_letters(IMAGE_PATH)
+        example_letter = list(found_locations)[0]
+        self._data_model.main_letters.data.add(example_letter)
+        self._set_duplicate_letters(example_letter, found_locations)
+        letter_to_locations_dist = identify_letters(IMAGE_PATH, found_locations)
+        self._data_model.main_letters.data.remove(example_letter)
+        for main_letter, duplicate_letters in letter_to_locations_dist.items():
+            self._set_duplicate_letters(main_letter, duplicate_letters)
 
     def _look_for_duplicates(self, letter_center: Tuple, num_of_letters: int):
         images_of_duplicated_letters = self._get_image_patch(self._image, letter_center)

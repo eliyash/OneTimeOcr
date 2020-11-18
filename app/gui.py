@@ -16,12 +16,14 @@ class Gui:
             data_model: DataModel,
             get_image_patch: Callable,
             look_for_dups_callback: Callable,
+            network_detect_callback: Callable,
             save_letters_callback: Callable,
             get_images_by_locations_callback: Callable
     ):
         self._data_model = data_model
         self._get_image_patch = get_image_patch
         self._look_for_dups_callback = look_for_dups_callback
+        self._network_detect_callback = network_detect_callback
         self._save_letters_callback = save_letters_callback
         self._get_images_by_locations_callback = get_images_by_locations_callback
 
@@ -33,8 +35,11 @@ class Gui:
         self._save_button = tk.Button(self._top_bar, text="save lettres", command=self._on_save_all_letters)
         self._save_button.pack(side=tk.LEFT)
 
-        self._look_for_dup_button = tk.Button(self._top_bar, text="look for duplicates", command=self._on_look_for_duplicates)
+        self._look_for_dup_button = tk.Button(self._top_bar, text="look for letter", command=self._on_look_for_duplicates)
         self._look_for_dup_button.pack(side=tk.LEFT)
+
+        self._call_net_button = tk.Button(self._top_bar, text="call net", command=self._network_detect_callback)
+        self._call_net_button.pack(side=tk.LEFT)
 
         self._text_frame = tk.Frame(self._window)
         self._text_frame.grid(row=1, column=0, sticky="nsew")
@@ -68,6 +73,10 @@ class Gui:
     def _on_save_all_letters(self):
         folder = askdirectory()
         self._save_letters_callback(folder, self._data_model.instances_locations_by_letters.data)
+
+    def _on_look_for_duplicates(self):
+        current_main_letter = list(self._data_model.current_main_letter.data)[0]
+        self._look_for_dups_callback(current_main_letter, self._duplicates.get())
 
     def _on_look_for_duplicates(self):
         current_main_letter = list(self._data_model.current_main_letter.data)[0]

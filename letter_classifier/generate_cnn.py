@@ -94,15 +94,18 @@ def run_train(images_folder, output_path):
     model = Net(len(image_net_train_data.classes)).to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
+    best_test_loss = None
     for epoch in range(number_of_epochs):
         train(model, device, train_loader, optimizer, epoch)
-        test(model, device, test_loader, epoch, benchmark_folder)
-
-    torch.save(model, output_path)
+        test_loss = test(model, device, test_loader, epoch, benchmark_folder)
+        if best_test_loss is None or test_loss < best_test_loss:
+            best_test_loss = test_loss
+            torch.save(model, str(output_path / 'epoch_{}.pt'.format(epoch)))
+    torch.save(model, str(output_path / 'last_net.pt'))
 
 
 def main():
-    run_train(DEFAULT_IMAGES_FOLDER, DEFAULT_NETWORK_PATH)
+    run_train(DEFAULT_IMAGES_FOLDER, Path(DEFAULT_NETWORK_PATH))
 
 
 if __name__ == '__main__':
