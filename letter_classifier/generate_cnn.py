@@ -11,8 +11,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
-from mnist_like_net import Net
-from paths import Locations
+from letter_classifier.default_locations import DEFAULT_IMAGES_FOLDER, DEFAULT_NETWORK_PATH
+from letter_classifier.mnist_like_net import Net
 
 
 def train(model, device, train_loader, optimizer, epoch):
@@ -58,9 +58,9 @@ def test(model, device, test_loader, epoch, benchmark_folder):
     return test_loss
 
 
-def run_train(images_folder=Locations.TRAINING_LETTERS):
+def run_train(images_folder, output_path):
     benchmark_folder = Path(r'C:\temp\train') / time.strftime("%Y%m%d-%H%M%S")
-
+    number_of_epochs = 100
     torch.manual_seed(1)
 
     device = "cuda"
@@ -94,12 +94,17 @@ def run_train(images_folder=Locations.TRAINING_LETTERS):
     model = Net(len(image_net_train_data.classes)).to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
-    for epoch in range(30):
+    for epoch in range(number_of_epochs):
         train(model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader, epoch, benchmark_folder)
 
-    torch.save(model, Locations.NETWORK_PATH)
+    torch.save(model, output_path)
+
+
+def main():
+    run_train(DEFAULT_IMAGES_FOLDER, DEFAULT_NETWORK_PATH)
 
 
 if __name__ == '__main__':
-    run_train(r"C:\temp\20201109-220510")
+    main()
+

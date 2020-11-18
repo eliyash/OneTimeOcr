@@ -6,8 +6,8 @@ import pytesseract
 import numpy as np
 from pytesseract import Output
 
-from utils import make_dir
-from paths import Locations
+from tessarect.utils import make_dir
+from tessarect.paths import Locations
 
 pytesseract.pytesseract.tesseract_cmd = Locations.TESSERACT_EXEC
 LETTERS_PATCH_FOLDER = r'C:\Workspace\MyOCR\identifieng letters\data\books\letters'

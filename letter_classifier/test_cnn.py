@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
-from paths import Locations
-from mnist_like_net import Net
+from letter_classifier.default_locations import DEFAULT_NETWORK_PATH, DEFAULT_IMAGES_FOLDER
+from letter_classifier.mnist_like_net import Net
 
 
 def test(_, model, device, test_loader):
@@ -32,6 +32,9 @@ def test(_, model, device, test_loader):
 
 
 def main():
+    training_letters = DEFAULT_IMAGES_FOLDER
+    network_path = DEFAULT_NETWORK_PATH
+
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
@@ -57,7 +60,7 @@ def main():
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    model = torch.load(Locations.NETWORK_PATH)  # type: Net
+    model = torch.load(network_path)  # type: Net
     model.eval()
 
     transform = transforms.Compose([
@@ -68,7 +71,7 @@ def main():
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    imagenet_data = ImageFolder(Locations.TRAINING_LETTERS, transform=transform)
+    imagenet_data = ImageFolder(training_letters, transform=transform)
 
     test_loader = torch.utils.data.DataLoader(imagenet_data,
                                               batch_size=16,
