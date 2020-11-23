@@ -1,7 +1,7 @@
 import random
 import tkinter.ttk as tkk
 import tkinter as tk
-from typing import Dict, Tuple, Set, Callable
+from typing import Dict, Tuple, Callable
 import numpy as np
 from PIL import ImageTk, Image
 
@@ -34,9 +34,6 @@ class MainLettersHandler:
         self._combo = tkk.Combobox(self._top_bar)
         self._combo.pack(side=tk.LEFT)
         self._combo.bind('<<ComboboxSelected>>', self._on_combo_selected)
-
-        self._clear_button = tk.Button(self._top_bar, text="remove main letter", command=self._on_clear_letters)
-        self._clear_button.pack(side=tk.LEFT)
 
         self._cv_image = np.array(self._data_model.image)
         self._chosen_letter_image = tk.Label(self._top_bar)
@@ -74,19 +71,10 @@ class MainLettersHandler:
     def _get_random_color():
         return '#' + ''.join(['{:02x}'.format(random.randint(0, 255)) for _ in range(3)])
 
-    def _on_clear_letters(self):
-        self._remove_main_letter(self._data_model.current_main_letter.data)
-
     def add_main_letter(self, letter_location):
         data = self._data_model.main_letters.data
         data.add(letter_location)
         self._data_model.main_letters.data = data
-
-    def _remove_main_letter(self, letter):
-        main_letters = self._data_model.main_letters.data  # type: Set
-        main_letters.remove(letter)
-        self._data_model.current_main_letter.data = list(main_letters)[0] if main_letters else None
-        self._data_model.main_letters.data = main_letters
 
     def _set_active_main_letter(self, letter):
         if letter:
@@ -114,9 +102,8 @@ class MainLettersHandler:
         letters_to_remove = old_main_letter - new_main_letters
         [self._letters_markers_managers.pop(letter_to_remove) for letter_to_remove in letters_to_remove]
         for letter_to_add in letters_to_add:
-            self._letters_markers_managers[letter_to_add] = SimpleMarkerDrawer(
-                self._canvas, self._get_random_color(), translator=self._translator
-            )
+            marker_drawer = SimpleMarkerDrawer(self._canvas, self._get_random_color(), translator=self._translator)
+            self._letters_markers_managers[letter_to_add] = marker_drawer
 
     def set_marker_managers_for_duplicates(self, locations_dict):
         self.handle_change_in_main_letters(set(locations_dict.keys()))

@@ -1,11 +1,12 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter.filedialog import askdirectory
 from typing import Callable, Tuple
 
 from PIL import ImageTk
 
 from app.data_model import DataModel
-from app.letter_images import LettersImagesFrame
+from app.letter_images import MainLettersScreen, DuplicateLettersFrame
 from app.main_letters_handler import MainLettersHandler
 from app.tools import are_points_close, NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES
 
@@ -46,8 +47,11 @@ class Gui:
         self._text_frame = tk.Frame(self._window)
         self._text_frame.grid(row=1, column=0, sticky="nsew")
 
-        self._letters_frame = tk.Frame(self._window)
-        self._letters_frame.grid(row=1, column=0, sticky="nsew")
+        self._duplicates_letters_frame = tk.Frame(self._window)
+        self._duplicates_letters_frame.grid(row=1, column=0, sticky="nsew")
+
+        self._main_letters_frame = tk.Frame(self._window)
+        self._main_letters_frame.grid(row=1, column=0, sticky="nsew")
 
         width, height = self._data_model.image.size
         self._canvas = tk.Canvas(self._text_frame, width=width, height=height)
@@ -71,18 +75,33 @@ class Gui:
             self._data_model, self._run_gui_action, self._top_bar, self._canvas, self._get_image_patch, self._translator
         )
 
-        self._main_letters_frame = LettersImagesFrame(
-            self._data_model, self._run_gui_action, self._get_image_patch, self._letters_frame
+        self._main_letters_screen = MainLettersScreen(
+            self._data_model, self._run_gui_action, self._get_image_patch, self._main_letters_frame
         )
 
-        self._switch_mode = tk.Button(self._top_bar, text="switch mode", command=self._on_switch_apps)
-        self._switch_mode.pack(side=tk.LEFT)
+        self._duplicates_letters_screen = DuplicateLettersFrame(
+            self._data_model, self._run_gui_action, self._get_image_patch, self._duplicates_letters_frame
+        )
 
-        self._is_normal_mode = True
+        self._switch_mode_frame = tk.Frame(self._top_bar)
+        self._switch_mode_frame.pack(side=tk.LEFT)
+
+        values = [
+            ('text', self._text_frame.tkraise),
+            ('duplicates', self._duplicates_letters_frame.tkraise),
+            ('main letters', self._main_letters_frame.tkraise)]
+        v = tk.StringVar(self._switch_mode_frame, values[0][0])
+
+        self._switch_mode = []
+        for text, func in values:
+            rb = ttk.Radiobutton(self._switch_mode_frame, text=text, variable=v, value=text, command=func)
+            rb.pack(side=tk.LEFT)
+            self._switch_mode.append(rb)
+
         self._text_frame.tkraise()
 
     def _translator(self, location, inverse=False):
-        return tuple(axis + offset*(-1 if inverse else 1) for axis, offset in zip(location, self._translation))
+        return tuple(axis + offset * (-1 if inverse else 1) for axis, offset in zip(location, self._translation))
 
     def _run_gui_action(self, func, delay=0):
         return lambda *args, **kwargs: self._window.after(delay, func(*args, **kwargs))
@@ -100,7 +119,7 @@ class Gui:
 
     def _on_mouse_press_wheel(self, event):
         x, y = CENTER_POINT
-        location = (event.x-x, event.y-y)
+        location = (event.x - x, event.y - y)
         new_location = self._translator(location)
         new_location_norm = tuple(
             (min(mx, max(mn, val)) for mn, mx, val in zip(MIN_MOVES, MAX_MOVES, new_location))
@@ -120,14 +139,6 @@ class Gui:
             if are_points_close(letter_location, location):
                 letters_locations.remove(letter_location)
         self._data_model.main_letters.data = letters_locations
-
-    def _on_switch_apps(self):
-        if self._is_normal_mode:
-            self._letters_frame.tkraise()
-        else:
-            self._text_frame.tkraise()
-
-        self._is_normal_mode = not self._is_normal_mode
 
     def run(self):
         self._window.mainloop()

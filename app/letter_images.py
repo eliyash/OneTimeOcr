@@ -24,7 +24,6 @@ class LettersImagesFrame:
         self._tk_image = ImageTk.PhotoImage(self._data_model.image)
         self._currentFrame = None
         self._create_new_frame()
-        self._data_model.current_location_duplicates.attach(self._run_gui_action(self.show_images))
 
     def _remove_images(self):
         self._currentFrame.destroy()
@@ -34,11 +33,12 @@ class LettersImagesFrame:
         self._currentFrame = tk.Frame(self._frame)
         self._currentFrame.grid(row=0, column=0)
 
+    def _remove_letter(self, location):
+        pass
+
     def _del_image(self, label, location):
         label.destroy()
-        data = self._data_model.instances_locations_by_letters.data
-        data[self._data_model.current_main_letter.data].remove(location)
-        self._data_model.instances_locations_by_letters.data = data
+        self._remove_letter(location)
 
     def _get_del_image_function(self, label, location):
         return lambda e: self._del_image(label, location)
@@ -55,3 +55,25 @@ class LettersImagesFrame:
             label.image = tk_letter_image
             label.bind("<Button-1>", self._get_del_image_function(label, location))
             label.grid(row=row, column=column)
+
+
+class DuplicateLettersFrame(LettersImagesFrame):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._data_model.current_location_duplicates.attach(self._run_gui_action(self.show_images))
+
+    def _remove_letter(self, location):
+        data = self._data_model.instances_locations_by_letters.data
+        data[self._data_model.current_main_letter.data].remove(location)
+        self._data_model.instances_locations_by_letters.data = data
+
+
+class MainLettersScreen(LettersImagesFrame):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._data_model.main_letters.attach(self._run_gui_action(self.show_images))
+
+    def _remove_letter(self, location):
+        data = self._data_model.main_letters.data
+        data.remove(location)
+        self._data_model.main_letters.data = data
