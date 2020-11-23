@@ -15,14 +15,14 @@ class Gui:
             self,
             data_model: DataModel,
             get_image_patch: Callable,
-            look_for_dups_callback: Callable,
+            on_look_for_letter_callback: Callable,
             network_detect_callback: Callable,
             save_letters_callback: Callable,
             get_images_by_locations_callback: Callable
     ):
         self._data_model = data_model
         self._get_image_patch = get_image_patch
-        self._look_for_dups_callback = look_for_dups_callback
+        self._on_look_for_letter_callback = on_look_for_letter_callback
         self._network_detect_callback = network_detect_callback
         self._save_letters_callback = save_letters_callback
         self._get_images_by_locations_callback = get_images_by_locations_callback
@@ -35,7 +35,7 @@ class Gui:
         self._save_button = tk.Button(self._top_bar, text="save lettres", command=self._on_save_all_letters)
         self._save_button.pack(side=tk.LEFT)
 
-        self._look_for_dup_button = tk.Button(self._top_bar, text="look for letter", command=self._on_look_for_duplicates)
+        self._look_for_dup_button = tk.Button(self._top_bar, text="look for letter", command=self._on_look_for_letter)
         self._look_for_dup_button.pack(side=tk.LEFT)
 
         self._call_net_button = tk.Button(self._top_bar, text="call net", command=self._network_detect_callback)
@@ -59,10 +59,13 @@ class Gui:
         self._duplicates.set(NUM_OF_LETTERS)
         self._duplicates.pack(side=tk.LEFT)
 
-        self._main_letters_handler = \
-            MainLettersHandler(self._data_model, self._run_gui_action, self._top_bar, self._canvas, self._get_image_patch)
+        self._main_letters_handler = MainLettersHandler(
+                self._data_model, self._run_gui_action, self._top_bar, self._canvas, self._get_image_patch
+        )
 
-        self._main_letters_frame = LettersImagesFrame(self._data_model, self._run_gui_action, self._get_image_patch, self._letters_frame)
+        self._main_letters_frame = LettersImagesFrame(
+            self._data_model, self._run_gui_action, self._get_image_patch, self._letters_frame
+        )
 
         self._switch_mode = tk.Button(self._top_bar, text="switch mode", command=self._on_switch_apps)
         self._switch_mode.pack(side=tk.LEFT)
@@ -77,9 +80,9 @@ class Gui:
         folder = askdirectory()
         self._save_letters_callback(folder, self._data_model.instances_locations_by_letters.data)
 
-    def _on_look_for_duplicates(self):
+    def _on_look_for_letter(self):
         current_main_letter = list(self._data_model.current_main_letter.data)[0]
-        self._look_for_dups_callback(current_main_letter, self._duplicates.get())
+        self._on_look_for_letter_callback(current_main_letter, self._duplicates.get())
 
     def _on_mouse_press_left(self, event):
         self._main_letters_handler.add_main_letter((event.x, event.y))
