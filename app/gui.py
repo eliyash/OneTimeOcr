@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter.filedialog import askdirectory
-from typing import Callable
+from typing import Callable, Tuple
 
 from PIL import ImageTk
 
@@ -18,7 +18,8 @@ class Gui:
             on_look_for_letter_callback: Callable,
             network_detect_callback: Callable,
             save_letters_callback: Callable,
-            get_images_by_locations_callback: Callable
+            get_images_by_locations_callback: Callable,
+            translation: Tuple
     ):
         self._data_model = data_model
         self._get_image_patch = get_image_patch
@@ -26,6 +27,7 @@ class Gui:
         self._network_detect_callback = network_detect_callback
         self._save_letters_callback = save_letters_callback
         self._get_images_by_locations_callback = get_images_by_locations_callback
+        self._translation = translation
 
         self._window = tk.Tk()
         self._tk_image = ImageTk.PhotoImage(self._data_model.image)
@@ -50,7 +52,7 @@ class Gui:
         width, height = self._data_model.image.size
         self._canvas = tk.Canvas(self._text_frame, width=width, height=height)
         self._canvas.pack(side=tk.LEFT)
-        self._canvas.create_image(0, 0, image=self._tk_image, anchor=tk.NW)
+        self._canvas.create_image(*[-axis for axis in translation], image=self._tk_image, anchor=tk.NW)
 
         self._canvas.bind("<Button-1>", self._on_mouse_press_left)
         self._canvas.bind("<Button-3>", self._on_mouse_press_right)
@@ -60,7 +62,7 @@ class Gui:
         self._duplicates.pack(side=tk.LEFT)
 
         self._main_letters_handler = MainLettersHandler(
-                self._data_model, self._run_gui_action, self._top_bar, self._canvas, self._get_image_patch
+            self._data_model, self._run_gui_action, self._top_bar, self._canvas, self._get_image_patch, self._translator
         )
 
         self._main_letters_frame = LettersImagesFrame(
@@ -73,6 +75,9 @@ class Gui:
         self._is_normal_mode = True
         self._text_frame.tkraise()
 
+    def _translator(self, location, inverse=False):
+        return tuple(axis + offset*(-1 if inverse else 1) for axis, offset in zip(location, self._translation))
+
     def _run_gui_action(self, func, delay=0):
         return lambda *args, **kwargs: self._window.after(delay, func(*args, **kwargs))
 
@@ -81,16 +86,17 @@ class Gui:
         self._save_letters_callback(folder, self._data_model.instances_locations_by_letters.data)
 
     def _on_look_for_letter(self):
-        current_main_letter = list(self._data_model.current_main_letter.data)[0]
-        self._on_look_for_letter_callback(current_main_letter, self._duplicates.get())
+        self._on_look_for_letter_callback(self._data_model.current_main_letter.data, self._duplicates.get())
 
     def _on_mouse_press_left(self, event):
-        self._main_letters_handler.add_main_letter((event.x, event.y))
+        location = self._translator((event.x, event.y))
+        self._main_letters_handler.add_main_letter(location)
 
     def _on_mouse_press_right(self, event):
+        location = self._translator((event.x, event.y))
         letters_locations = self._data_model.main_letters.data
         for letter_location in letters_locations.copy():
-            if are_points_close(letter_location, (event.x, event.y)):
+            if are_points_close(letter_location, location):
                 letters_locations.remove(letter_location)
         self._data_model.main_letters.data = letters_locations
 

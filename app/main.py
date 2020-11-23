@@ -1,4 +1,3 @@
-import threading
 import time
 from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
@@ -18,6 +17,7 @@ from letter_detector.find_centers import detect_letters
 
 class App:
     def __init__(self):
+        self._translation = (100, 200)
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._data_model = DataModel(IMAGE_PATH)
         self._image = cv2.imread(IMAGE_PATH, cv2.IMREAD_GRAYSCALE).astype('float16') / 256
@@ -27,7 +27,8 @@ class App:
             self._wrap_to_executor(self._look_for_duplicates),
             self._wrap_to_executor(self._network_detect),
             self._on_save_letters,
-            lambda locations: self._get_letters_images(self._image, locations)
+            lambda locations: self._get_letters_images(self._image, locations),
+            self._translation
         )
 
     def _wrap_to_executor(self, func):

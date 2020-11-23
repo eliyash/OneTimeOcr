@@ -36,9 +36,8 @@ class LettersImagesFrame:
 
     def _del_image(self, label, location):
         label.destroy()
-        main_letter = list(self._data_model.current_main_letter.data)[0]
         data = self._data_model.instances_locations_by_letters.data
-        data[main_letter].remove(location)
+        data[self._data_model.current_main_letter.data].remove(location)
         self._data_model.instances_locations_by_letters.data = data
 
     def _get_del_image_function(self, label, location):
