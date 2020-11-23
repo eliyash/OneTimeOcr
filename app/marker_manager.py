@@ -1,4 +1,4 @@
-from typing import Set
+from typing import Set, Callable
 
 from app.observers import Subject
 from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
@@ -38,10 +38,10 @@ class MarkerDrawer:
 
 
 class MarkerManager(MarkerDrawer):
-    def __init__(self, instances_locations_observer: Subject, *args, **kwargs):
+    def __init__(self, instances_locations_observer: Subject, run_gui_action: Callable, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._instances_locations = instances_locations_observer
-        self._instances_locations.attach(self._update_letters)
+        self._instances_locations.attach(run_gui_action(self._update_letters))
 
     def __del__(self):
         self._instances_locations.detach(self._update_letters)

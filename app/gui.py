@@ -60,9 +60,9 @@ class Gui:
         self._duplicates.pack(side=tk.LEFT)
 
         self._main_letters_handler = \
-            MainLettersHandler(self._data_model, self._top_bar, self._canvas, self._get_image_patch)
+            MainLettersHandler(self._data_model, self._run_gui_action, self._top_bar, self._canvas, self._get_image_patch)
 
-        self._main_letters_frame = LettersImagesFrame(self._data_model, self._get_image_patch, self._letters_frame)
+        self._main_letters_frame = LettersImagesFrame(self._data_model, self._run_gui_action, self._get_image_patch, self._letters_frame)
 
         self._switch_mode = tk.Button(self._top_bar, text="switch mode", command=self._on_switch_apps)
         self._switch_mode.pack(side=tk.LEFT)
@@ -70,13 +70,12 @@ class Gui:
         self._is_normal_mode = True
         self._text_frame.tkraise()
 
+    def _run_gui_action(self, func, delay=0):
+        return lambda *args, **kwargs: self._window.after(delay, func(*args, **kwargs))
+
     def _on_save_all_letters(self):
         folder = askdirectory()
         self._save_letters_callback(folder, self._data_model.instances_locations_by_letters.data)
-
-    def _on_look_for_duplicates(self):
-        current_main_letter = list(self._data_model.current_main_letter.data)[0]
-        self._look_for_dups_callback(current_main_letter, self._duplicates.get())
 
     def _on_look_for_duplicates(self):
         current_main_letter = list(self._data_model.current_main_letter.data)[0]

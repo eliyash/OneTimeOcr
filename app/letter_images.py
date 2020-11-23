@@ -11,18 +11,20 @@ class LettersImagesFrame:
     def __init__(
             self,
             data_model: DataModel,
+            run_gui_action: Callable,
             get_image_patch: Callable,
             frame
     ):
         self._letters_in_a_row = 10
         self._data_model = data_model
+        self._run_gui_action = run_gui_action
         self._get_image_patch = get_image_patch
         self._frame = frame
 
         self._tk_image = ImageTk.PhotoImage(self._data_model.image)
         self._currentFrame = None
         self._create_new_frame()
-        self._data_model.current_location_duplicates.attach(self.show_images)
+        self._data_model.current_location_duplicates.attach(self._run_gui_action(self.show_images))
 
     def _remove_images(self):
         self._currentFrame.destroy()

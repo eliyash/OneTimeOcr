@@ -13,13 +13,15 @@ EMPTY_IMAGE = np.ones((BOX_HEIGHT_MARGIN*2, BOX_WIDTH_MARGIN*2)) * 255
 
 
 class MainLettersHandler:
-    def __init__(self, data_model: DataModel, top_bar, canvas, get_image_patch: Callable):
+    def __init__(self, data_model: DataModel, run_gui_action: Callable, top_bar, canvas, get_image_patch: Callable):
         random.seed(0)
 
         self._data_model = data_model
+        self._run_gui_action = run_gui_action
         self._get_image_patch = get_image_patch
 
         # locals
+        self._old_main_letters = set()
         self._letters_markers_managers = dict()  # type: Dict[Tuple, SimpleMarkerDrawer]
 
         self._top_bar = top_bar
@@ -37,19 +39,19 @@ class MainLettersHandler:
         self._chosen_letter_image.pack(side=tk.LEFT)
 
         self._main_markers_manager = MarkerManager(
-            self._data_model.main_letters,
+            self._data_model.main_letters, run_gui_action,
             self._canvas, 'black', BOX_WIDTH_MARGIN + 2, BOX_HEIGHT_MARGIN + 3
         )
 
         self._chosen_letter_markers_manager = MarkerManager(
-            self._data_model.current_main_letter,
+            self._data_model.current_main_letter, run_gui_action,
             self._canvas, 'green', BOX_WIDTH_MARGIN + 4, BOX_HEIGHT_MARGIN + 6
         )
 
         self._set_chosen_letter_image(None)
-        self._data_model.instances_locations_by_letters.attach(self.set_marker_managers_for_duplicates)
-        self._data_model.current_main_letter.attach(self._set_active_main_letter)
-        self._data_model.current_main_letter.attach(self._set_chosen_letter_image)
+        self._data_model.instances_locations_by_letters.attach(run_gui_action(self.set_marker_managers_for_duplicates))
+        self._data_model.current_main_letter.attach(run_gui_action(self._set_active_main_letter))
+        self._data_model.current_main_letter.attach(run_gui_action(self._set_chosen_letter_image))
 
     def _set_chosen_letter_image(self, letter):
         if letter:
@@ -71,7 +73,6 @@ class MainLettersHandler:
         data = self._data_model.main_letters.data
         data.add(letter_location)
         self._data_model.main_letters.data = data
-        self._data_model.current_main_letter.data = {letter_location}
 
     def _remove_main_letter(self, letter):
         main_letters = self._data_model.main_letters.data  # type: Set

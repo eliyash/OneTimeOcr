@@ -1,4 +1,6 @@
+import threading
 import time
+from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
 
 import json
@@ -16,16 +18,20 @@ from letter_detector.find_centers import detect_letters
 
 class App:
     def __init__(self):
+        self._executor = ThreadPoolExecutor(max_workers=1)
         self._data_model = DataModel(IMAGE_PATH)
         self._image = cv2.imread(IMAGE_PATH, cv2.IMREAD_GRAYSCALE).astype('float16') / 256
         self._gui = Gui(
             self._data_model,
             self._get_image_patch,
-            self._look_for_duplicates,
-            self._network_detect,
+            self._wrap_to_executor(self._look_for_duplicates),
+            self._wrap_to_executor(self._network_detect),
             self._on_save_letters,
             lambda locations: self._get_letters_images(self._image, locations)
         )
+
+    def _wrap_to_executor(self, func):
+        return lambda *args, **kwargs: self._executor.submit(func, *args, **kwargs)
 
     @staticmethod
     def _get_image_patch(image, key):
@@ -74,14 +80,24 @@ class App:
                 cv2.imwrite(str(file_name), image_as_uint)
 
     def _network_detect(self):
-        found_locations = detect_letters(IMAGE_PATH)
-        example_letter = list(found_locations)[0]
-        self._data_model.main_letters.data.add(example_letter)
-        self._set_duplicate_letters(example_letter, found_locations)
-        letter_to_locations_dist = identify_letters(IMAGE_PATH, found_locations)
-        self._data_model.main_letters.data.remove(example_letter)
-        for main_letter, duplicate_letters in letter_to_locations_dist.items():
-            self._set_duplicate_letters(main_letter, duplicate_letters)
+        try:
+            print('detecting letters')
+            found_locations = detect_letters(IMAGE_PATH)
+            print('letters detected')
+            example_letter = list(found_locations)[0]
+            self._add_new_letter(example_letter)
+            self._set_duplicate_letters(example_letter, found_locations)
+            print('detected letters showed, identifying letters')
+            letter_to_locations_dist = identify_letters(IMAGE_PATH, found_locations)
+            print('letters identified')
+            self._data_model.main_letters.data = set()
+            for main_letter, duplicate_letters in letter_to_locations_dist.items():
+                self._add_new_letter(main_letter)
+                self._set_duplicate_letters(main_letter, duplicate_letters)
+            print('all identify letters showed')
+        except Exception as e:
+            print('error')
+            print(e)
 
     def _look_for_duplicates(self, letter_center: Tuple, num_of_letters: int):
         images_of_duplicated_letters = self._get_image_patch(self._image, letter_center)
@@ -98,6 +114,11 @@ class App:
         found_locations = {(x_center + BOX_WIDTH_MARGIN, y_center + BOX_HEIGHT_MARGIN)
                            for (y_center, x_center), val in to_add}
         self._set_duplicate_letters(letter_center, found_locations)
+
+    def _add_new_letter(self, letter):
+        data = self._data_model.main_letters.data
+        data.add(letter)
+        self._data_model.main_letters.data = data
 
     def _set_duplicate_letters(self, letter, locations):
         data = self._data_model.instances_locations_by_letters.data
@@ -122,4 +143,5 @@ class App:
 
 
 if __name__ == '__main__':
-    App().run()
+    app = App()
+    app.run()
