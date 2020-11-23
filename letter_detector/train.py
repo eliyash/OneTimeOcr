@@ -90,7 +90,7 @@ def main():
 
     train_data_path = Path(r'C:\Workspace\MyOCR\EAST\eli east gez\train')
     test_data_path = Path(r'C:\Workspace\MyOCR\EAST\eli east gez\test')
-    pths_path = Path('./nets') / time_str
+    pths_path = Path('../networks') / time_str
     Path(pths_path).mkdir(parents=True)
     batch_size = 4
     lr = 1e-3
