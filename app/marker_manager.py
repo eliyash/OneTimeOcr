@@ -24,7 +24,9 @@ class MarkerDrawer:
             x_center + self._box_width_margin,
             y_center + self._box_height_margin,
             tags=(location + (self._color,),),
-            outline=self._color
+            outline=self._color,
+            fill=self._color,
+            stipple='gray50'
         )
 
     def _remove_a_box(self, location):

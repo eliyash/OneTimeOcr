@@ -7,7 +7,7 @@ from PIL import ImageTk
 from app.data_model import DataModel
 from app.letter_images import LettersImagesFrame
 from app.main_letters_handler import MainLettersHandler
-from app.tools import are_points_close, NUM_OF_LETTERS, CENTER_POINT
+from app.tools import are_points_close, NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES
 
 
 class Gui:
@@ -101,15 +101,17 @@ class Gui:
     def _on_mouse_press_wheel(self, event):
         x, y = CENTER_POINT
         location = (event.x-x, event.y-y)
-        self._canvas.move(self._canvas_image, *[-axis for axis in location])
-        self._translation = self._translator(location)
-        current_main_letter = self._data_model.current_main_letter.data
-        main_letters = self._data_model.main_letters.data.copy()
-        instances_locations_by_letters = {k: v for k, v in self._data_model.instances_locations_by_letters.data.items()}
-        self._data_model.main_letters.data = set()
-        self._data_model.main_letters.data = main_letters
-        self._data_model.instances_locations_by_letters.data = instances_locations_by_letters
-        self._data_model.current_main_letter.data = current_main_letter
+        new_location = self._translator(location)
+        new_location_norm = tuple(
+            (min(mx, max(mn, val)) for mn, mx, val in zip(MIN_MOVES, MAX_MOVES, new_location))
+        )
+        if new_location_norm != self._translation:
+            location_norm = tuple(
+                (val + norm - orig for val, norm, orig in zip(location, new_location_norm, new_location))
+            )
+            self._canvas.move(self._canvas_image, *[-axis for axis in location_norm])
+            self._translation = new_location_norm
+            self._data_model.reset_data()
 
     def _on_mouse_press_right(self, event):
         location = self._translator((event.x, event.y))

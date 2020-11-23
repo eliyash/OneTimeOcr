@@ -1,3 +1,4 @@
+import random
 from typing import Dict
 
 from PIL import Image
@@ -43,3 +44,13 @@ class DataModel:
         else:
             new_current_location_duplicates = []
         self.current_location_duplicates.data = new_current_location_duplicates
+
+    def reset_data(self):
+        random.seed(0)
+        current_main_letter = self.current_main_letter.data
+        main_letters = self.main_letters.data.copy()
+        instances_locations_by_letters = {k: v for k, v in self.instances_locations_by_letters.data.items()}
+        self.main_letters.data = set()
+        self.main_letters.data = main_letters
+        self.instances_locations_by_letters.data = instances_locations_by_letters
+        self.current_main_letter.data = current_main_letter
