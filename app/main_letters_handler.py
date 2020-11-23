@@ -18,8 +18,6 @@ class MainLettersHandler:
             self, data_model: DataModel, run_gui_action: Callable,
             top_bar, canvas, get_image_patch: Callable, translator: Callable
     ):
-        random.seed(0)
-
         self._data_model = data_model
         self._run_gui_action = run_gui_action
         self._get_image_patch = get_image_patch

@@ -24,7 +24,7 @@ def identify_letters(image_path: str, locations, network_path=DEFAULT_NETWORK_PA
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     image = Image.open(image_path)
-    sm = torch.nn.Softmax()
+    softmax = torch.nn.Softmax(dim=1)
     model = torch.load(network_path)  # type: Net
     model.to(device)
     model.eval()
@@ -41,7 +41,7 @@ def identify_letters(image_path: str, locations, network_path=DEFAULT_NETWORK_PA
         var_image = image_loader(data_transforms, letter_image)
         var_image = var_image.to(device)
         output = model(var_image)
-        probabilities = sm(output)
+        probabilities = softmax(output)
         probabilities = probabilities.cpu().detach().squeeze(0)
         letter_class = np.argmax(np.array(probabilities))
         class_to_location_dict[letter_class].add((x, y))
