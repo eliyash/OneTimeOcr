@@ -36,12 +36,12 @@ class LettersImagesFrame:
     def _remove_letter(self, location):
         pass
 
+    def _set_actions(self, label, location):
+        pass
+
     def _del_image(self, label, location):
         label.destroy()
         self._remove_letter(location)
-
-    def _get_del_image_function(self, label, location):
-        return lambda e: self._del_image(label, location)
 
     def show_images(self, current_location_duplicates):
         self._remove_images()
@@ -53,7 +53,7 @@ class LettersImagesFrame:
             tk_letter_image = ImageTk.PhotoImage(Image.fromarray(cv_letter_image))
             label = tk.Label(self._currentFrame, image=tk_letter_image)
             label.image = tk_letter_image
-            label.bind("<Button-1>", self._get_del_image_function(label, location))
+            self._set_actions(label, location)
             label.grid(row=row, column=column)
 
 
@@ -67,13 +67,24 @@ class DuplicateLettersFrame(LettersImagesFrame):
         data[self._data_model.current_main_letter.data].remove(location)
         self._data_model.instances_locations_by_letters.data = data
 
+    def _set_actions(self, label, location):
+        label.bind("<Button-3>", lambda e: self._del_image(label, location))
+
 
 class MainLettersScreen(LettersImagesFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._data_model.main_letters.attach(self._run_gui_action(self.show_images))
+        self._letters_in_a_row = 40
 
     def _remove_letter(self, location):
         data = self._data_model.main_letters.data
         data.remove(location)
         self._data_model.main_letters.data = data
+
+    def _set_main_letter(self, label, location):
+        self._data_model.current_main_letter.data = location
+
+    def _set_actions(self, label, location):
+        label.bind("<Button-1>", lambda e: self._set_main_letter(label, location))
+        label.bind("<Button-3>", lambda e: self._del_image(label, location))

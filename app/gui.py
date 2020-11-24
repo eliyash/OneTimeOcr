@@ -35,6 +35,9 @@ class Gui:
         self._top_bar = tk.Frame(self._window)
         self._top_bar.grid(row=0, column=0, sticky="nsew")
 
+        self._main_letters_bar = tk.Frame(self._window)
+        self._main_letters_bar.grid(row=1, column=0, sticky="nsew")
+
         self._save_button = tk.Button(self._top_bar, text="save lettres", command=self._on_save_all_letters)
         self._save_button.pack(side=tk.LEFT)
 
@@ -45,13 +48,13 @@ class Gui:
         self._call_net_button.pack(side=tk.LEFT)
 
         self._text_frame = tk.Frame(self._window)
-        self._text_frame.grid(row=1, column=0, sticky="nsew")
+        self._text_frame.grid(row=2, column=0, sticky="nsew")
 
         self._duplicates_letters_frame = tk.Frame(self._window)
-        self._duplicates_letters_frame.grid(row=1, column=0, sticky="nsew")
+        self._duplicates_letters_frame.grid(row=2, column=0, sticky="nsew")
 
         self._main_letters_frame = tk.Frame(self._window)
-        self._main_letters_frame.grid(row=1, column=0, sticky="nsew")
+        self._main_letters_frame.grid(row=2, column=0, sticky="nsew")
 
         width, height = self._data_model.image.size
         self._canvas = tk.Canvas(self._text_frame, width=width, height=height)
@@ -76,7 +79,8 @@ class Gui:
         )
 
         self._main_letters_screen = MainLettersScreen(
-            self._data_model, self._run_gui_action, self._get_image_patch, self._main_letters_frame
+            self._data_model, self._run_gui_action,
+            lambda image, key: self._get_image_patch(image, key, scale=True), self._main_letters_bar
         )
 
         self._duplicates_letters_screen = DuplicateLettersFrame(
@@ -88,8 +92,7 @@ class Gui:
 
         values = [
             ('text', self._text_frame.tkraise),
-            ('duplicates', self._duplicates_letters_frame.tkraise),
-            ('main letters', self._main_letters_frame.tkraise)]
+            ('duplicates', self._duplicates_letters_frame.tkraise)]
         v = tk.StringVar(self._switch_mode_frame, values[0][0])
 
         self._switch_mode = []

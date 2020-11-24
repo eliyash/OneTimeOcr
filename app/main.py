@@ -36,12 +36,13 @@ class App:
         return lambda *args, **kwargs: self._executor.submit(func, *args, **kwargs)
 
     @staticmethod
-    def _get_image_patch(image, key):
+    def _get_image_patch(image, key, scale=False):
         (x_center, y_center) = key
         letter_image = image[
            y_center - BOX_HEIGHT_MARGIN: y_center + BOX_HEIGHT_MARGIN,
            x_center - BOX_WIDTH_MARGIN: x_center + BOX_WIDTH_MARGIN
         ]
+        letter_image = letter_image[::2, ::2] if scale else letter_image
         return letter_image
 
     @classmethod

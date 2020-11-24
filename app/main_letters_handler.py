@@ -1,5 +1,4 @@
 import random
-import tkinter.ttk as tkk
 import tkinter as tk
 from typing import Dict, Tuple, Callable
 import numpy as np
@@ -31,10 +30,6 @@ class MainLettersHandler:
         self._top_bar = top_bar
         self._canvas = canvas
 
-        self._combo = tkk.Combobox(self._top_bar)
-        self._combo.pack(side=tk.LEFT)
-        self._combo.bind('<<ComboboxSelected>>', self._on_combo_selected)
-
         self._cv_image = np.array(self._data_model.image)
         self._chosen_letter_image = tk.Label(self._top_bar)
         self._chosen_letter_image.pack(side=tk.LEFT)
@@ -52,7 +47,6 @@ class MainLettersHandler:
         self._set_chosen_letter_image(None)
         self._data_model.instances_locations_by_letters.attach(run_gui_action(self.set_marker_managers_for_duplicates))
         self._data_model.current_main_letter.attach(self._on_current_main_letter)
-        self._data_model.current_main_letter.attach(run_gui_action(self._set_active_main_letter))
         self._data_model.current_main_letter.attach(run_gui_action(self._set_chosen_letter_image))
 
     def _on_current_main_letter(self, letter):
@@ -75,26 +69,6 @@ class MainLettersHandler:
         data = self._data_model.main_letters.data
         data.add(letter_location)
         self._data_model.main_letters.data = data
-
-    def _set_active_main_letter(self, letter):
-        if letter:
-            self._set_combo(letter)
-        else:
-            self._reset_combo()
-
-    def _reset_combo(self):
-        self._combo['values'] = (' ',)
-        self._combo.current(0)
-
-    def _set_combo(self, letter):
-        values = tuple(self._data_model.main_letters.data)
-        index = values.index(letter)
-        self._combo['values'] = values
-        self._combo.current(index)
-
-    def _on_combo_selected(self, _):
-        x, y = (int(val_as_string) for val_as_string in self._combo.get().split(' '))
-        self._data_model.current_main_letter.data = (x, y)
 
     def handle_change_in_main_letters(self, new_main_letters):
         old_main_letter = set(self._letters_markers_managers.keys())
