@@ -4,24 +4,24 @@ import numpy as np
 
 from PIL import ImageTk, Image
 
-from app.data_model import DataModel
+from app.data_model import ViewModel
 
 
 class LettersImagesFrame:
     def __init__(
             self,
-            data_model: DataModel,
+            view_model: ViewModel,
             run_gui_action: Callable,
             get_image_patch: Callable,
             frame
     ):
         self._letters_in_a_row = 10
-        self._data_model = data_model
+        self._view_model = view_model
         self._run_gui_action = run_gui_action
         self._get_image_patch = get_image_patch
         self._frame = frame
 
-        self._tk_image = ImageTk.PhotoImage(self._data_model.image)
+        self._tk_image = ImageTk.PhotoImage(self._view_model.data_model.image)
         self._currentFrame = None
         self._create_new_frame()
 
@@ -45,7 +45,7 @@ class LettersImagesFrame:
 
     def show_images(self, current_location_duplicates):
         self._remove_images()
-        cv_image = np.array(self._data_model.image)
+        cv_image = np.array(self._view_model.data_model.image)
         for i, location in enumerate(current_location_duplicates):
             row = i // self._letters_in_a_row
             column = i % self._letters_in_a_row
@@ -60,12 +60,12 @@ class LettersImagesFrame:
 class DuplicateLettersFrame(LettersImagesFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._data_model.current_location_duplicates.attach(self._run_gui_action(self.show_images))
+        self._view_model.current_location_duplicates.attach(self._run_gui_action(self.show_images))
 
     def _remove_letter(self, location):
-        data = self._data_model.instances_locations_by_letters.data
-        data[self._data_model.current_main_letter.data].remove(location)
-        self._data_model.instances_locations_by_letters.data = data
+        data = self._view_model.data_model.instances_locations_by_letters.data
+        data[self._view_model.current_chosen_letter.data].remove(location)
+        self._view_model.data_model.instances_locations_by_letters.data = data
 
     def _set_actions(self, label, location):
         label.bind("<Button-3>", lambda e: self._del_image(label, location))
@@ -74,17 +74,28 @@ class DuplicateLettersFrame(LettersImagesFrame):
 class MainLettersScreen(LettersImagesFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._data_model.main_letters.attach(self._run_gui_action(self.show_images))
+        self._view_model.data_model.instances_locations_by_letters.attach(self._run_gui_action(self.show_images))
         self._letters_in_a_row = 40
 
-    def _remove_letter(self, location):
-        data = self._data_model.main_letters.data
-        data.remove(location)
-        self._data_model.main_letters.data = data
+    def show_images(self, instances_locations_by_letters):
+        super().show_images(list(instances_locations_by_letters.keys()))
 
-    def _set_main_letter(self, label, location):
-        self._data_model.current_main_letter.data = location
+    def _remove_letter(self, location):
+        data = self._view_model.data_model.instances_locations_by_letters.data
+        data.pop(location)
+        self._view_model.data_model.instances_locations_by_letters.data = data
+
+    def _set_main_letter(self, _, location):
+        self._view_model.current_chosen_letter.data = location
+
+    # def _f(self, e):
+    #     release_point = e.widget.winfo_x() + e.x, e.widget.winfo_y() + e.y
+    #     release_point
+    #     for location, label in self._map.items():
+    #         if are_points_close(location, release_point):
+    #             label.destroy()
 
     def _set_actions(self, label, location):
         label.bind("<Button-1>", lambda e: self._set_main_letter(label, location))
+        # label.bind("<ButtonRelease-1>", self._f)
         label.bind("<Button-3>", lambda e: self._del_image(label, location))

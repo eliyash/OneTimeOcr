@@ -5,7 +5,7 @@ from typing import Callable, Tuple
 
 from PIL import ImageTk
 
-from app.data_model import DataModel
+from app.data_model import DataModel, ViewModel
 from app.letter_images import MainLettersScreen, DuplicateLettersFrame
 from app.main_letters_handler import MainLettersHandler
 from app.tools import are_points_close, NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES
@@ -22,7 +22,7 @@ class Gui:
             get_images_by_locations_callback: Callable,
             translation: Tuple = (0, 0)
     ):
-        self._data_model = data_model
+        self._view_model = ViewModel(data_model)
         self._get_image_patch = get_image_patch
         self._on_look_for_letter_callback = on_look_for_letter_callback
         self._network_detect_callback = network_detect_callback
@@ -31,7 +31,7 @@ class Gui:
         self._translation = translation
 
         self._window = tk.Tk()
-        self._tk_image = ImageTk.PhotoImage(self._data_model.image)
+        self._tk_image = ImageTk.PhotoImage(self._view_model.data_model.image)
         self._top_bar = tk.Frame(self._window)
         self._top_bar.grid(row=0, column=0, sticky="nsew")
 
@@ -56,7 +56,7 @@ class Gui:
         self._main_letters_frame = tk.Frame(self._window)
         self._main_letters_frame.grid(row=2, column=0, sticky="nsew")
 
-        width, height = self._data_model.image.size
+        width, height = self._view_model.data_model.image.size
         self._canvas = tk.Canvas(self._text_frame, width=width, height=height)
         self._canvas.pack(side=tk.LEFT)
         self._canvas_image = self._canvas.create_image(0, 0, image=self._tk_image, anchor=tk.NW)
@@ -75,24 +75,22 @@ class Gui:
         self._duplicates.pack(side=tk.LEFT)
 
         self._main_letters_handler = MainLettersHandler(
-            self._data_model, self._run_gui_action, self._top_bar, self._canvas, self._get_image_patch, self._translator
+            self._view_model, self._run_gui_action, self._top_bar, self._canvas, self._get_image_patch, self._translator
         )
 
         self._main_letters_screen = MainLettersScreen(
-            self._data_model, self._run_gui_action,
+            self._view_model, self._run_gui_action,
             lambda image, key: self._get_image_patch(image, key, scale=True), self._main_letters_bar
         )
 
         self._duplicates_letters_screen = DuplicateLettersFrame(
-            self._data_model, self._run_gui_action, self._get_image_patch, self._duplicates_letters_frame
+            self._view_model, self._run_gui_action, self._get_image_patch, self._duplicates_letters_frame
         )
 
         self._switch_mode_frame = tk.Frame(self._top_bar)
         self._switch_mode_frame.pack(side=tk.LEFT)
 
-        values = [
-            ('text', self._text_frame.tkraise),
-            ('duplicates', self._duplicates_letters_frame.tkraise)]
+        values = [('text', self._text_frame.tkraise), ('duplicates', self._duplicates_letters_frame.tkraise)]
         v = tk.StringVar(self._switch_mode_frame, values[0][0])
 
         self._switch_mode = []
@@ -111,10 +109,10 @@ class Gui:
 
     def _on_save_all_letters(self):
         folder = askdirectory()
-        self._save_letters_callback(folder, self._data_model.instances_locations_by_letters.data)
+        self._save_letters_callback(folder, self._view_model.data_model.instances_locations_by_letters.data)
 
     def _on_look_for_letter(self):
-        self._on_look_for_letter_callback(self._data_model.current_main_letter.data, self._duplicates.get())
+        self._on_look_for_letter_callback(self._view_model.current_chosen_letter.data, self._duplicates.get())
 
     def _on_mouse_press_left(self, event):
         location = self._translator((event.x, event.y))
@@ -133,15 +131,15 @@ class Gui:
             )
             self._canvas.move(self._canvas_image, *[-axis for axis in location_norm])
             self._translation = new_location_norm
-            self._data_model.reset_data()
+            self._view_model.data_model.reset_data()
 
     def _on_mouse_press_right(self, event):
         location = self._translator((event.x, event.y))
-        letters_locations = self._data_model.main_letters.data
-        for letter_location in letters_locations.copy():
+        instances_locations_by_letters = self._view_model.data_model.instances_locations_by_letters.data
+        for letter_location in instances_locations_by_letters.keys():
             if are_points_close(letter_location, location):
-                letters_locations.remove(letter_location)
-        self._data_model.main_letters.data = letters_locations
+                instances_locations_by_letters.pop(letter_location)
+        self._view_model.data_model.instances_locations_by_letters.data = instances_locations_by_letters
 
     def run(self):
         self._window.mainloop()

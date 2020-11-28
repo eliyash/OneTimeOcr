@@ -87,15 +87,11 @@ class App:
         found_locations = detect_letters(IMAGE_PATH)
         logger.info('letters detected')
         example_letter = list(found_locations)[0]
-        self._add_new_letter(example_letter)
         self._set_duplicate_letters(example_letter, found_locations)
         logger.info('detected letters showed, identifying letters')
         letter_to_locations_dist = identify_letters(IMAGE_PATH, found_locations)
         logger.info('letters identified')
-        self._data_model.main_letters.data = set()
-        for main_letter, duplicate_letters in letter_to_locations_dist.items():
-            self._add_new_letter(main_letter)
-            self._set_duplicate_letters(main_letter, duplicate_letters)
+        self._data_model.instances_locations_by_letters.data = letter_to_locations_dist
         logger.info('all identify letters showed')
 
     def _look_for_duplicates(self, letter_center: Tuple, num_of_letters: int):
@@ -113,11 +109,6 @@ class App:
         found_locations = {(x_center + BOX_WIDTH_MARGIN, y_center + BOX_HEIGHT_MARGIN)
                            for (y_center, x_center), val in to_add}
         self._set_duplicate_letters(letter_center, found_locations)
-
-    def _add_new_letter(self, letter):
-        data = self._data_model.main_letters.data
-        data.add(letter)
-        self._data_model.main_letters.data = data
 
     def _set_duplicate_letters(self, letter, locations):
         data = self._data_model.instances_locations_by_letters.data

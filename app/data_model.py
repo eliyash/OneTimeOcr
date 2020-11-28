@@ -1,4 +1,5 @@
 import random
+from collections import defaultdict
 from typing import Dict
 
 from PIL import Image
@@ -9,48 +10,59 @@ from app.observers import Subject
 class DataModel:
     def __init__(self, image_path: str):
         self._image = Image.open(image_path)
-
-        self.main_letters = Subject(set())
+        # self.instances_locations_by_letters = Subject(defaultdict(set))
         self.instances_locations_by_letters = Subject(dict())
-        self.current_main_letter = Subject()
-        self.current_location_duplicates = Subject(set())
-
-        self.main_letters.attach(self.handle_main_letters_change)
-        self.current_main_letter.attach(self.set_current_location_duplicates)
-        self.instances_locations_by_letters.attach(self.set_current_location_duplicates)
 
     @property
     def image(self):
         return self._image
 
-    def handle_main_letters_change(self, new_main_letters):
-        map_letters = self.instances_locations_by_letters.data  # type: Dict
-        current_main_letters = set(map_letters.keys())
-        letters_to_add = new_main_letters - current_main_letters
-        letters_to_remove = current_main_letters - new_main_letters
-        [map_letters.pop(letter_to_remove) for letter_to_remove in letters_to_remove]
-        [map_letters.update({letter_to_add: set()}) for letter_to_add in letters_to_add]
-        self.current_main_letter.data = None
-        self.instances_locations_by_letters.data = map_letters
-        if letters_to_add:
-            self.current_main_letter.data = list(letters_to_add)[0]
-        elif new_main_letters:
-            self.current_main_letter.data = list(new_main_letters)[0]
+    def reset_data(self):
+        random.seed(0)
+        current_data = self.instances_locations_by_letters.data
+        self.instances_locations_by_letters.data = dict()
+        self.instances_locations_by_letters.data = current_data
 
-    def set_current_location_duplicates(self, _):
-        new_main_letter = self.current_main_letter.data
-        if new_main_letter:
-            new_current_location_duplicates = self.instances_locations_by_letters.data[new_main_letter]
+
+class ViewModel:
+    def __init__(self, data_modal: DataModel):
+        self.data_model = data_modal
+
+        self.current_chosen_letter = Subject()
+        self.current_location_duplicates = Subject(set())
+        self.current_main_letters = Subject(set())
+
+        self.current_chosen_letter.attach(self.set_new_chosen_letter)
+        self.data_model.instances_locations_by_letters.attach(self.handle_main_letters_change)
+        self.data_model.instances_locations_by_letters.attach(self.set_current_location_duplicates)
+
+    def handle_main_letters_change(self, new_instances_locations_by_letters: Dict):
+        current_chosen_letter = self.current_chosen_letter
+        current_main_letters = set(new_instances_locations_by_letters.keys())
+        letters_to_add = current_main_letters - self.current_main_letters.data
+        if letters_to_add:
+            self.current_chosen_letter.data = list(letters_to_add)[0]
+        elif current_chosen_letter in current_main_letters:
+            pass
+        elif current_main_letters:
+            self.current_chosen_letter.data = list(current_main_letters)[0]
+        else:
+            self.current_chosen_letter.data = None
+
+        self.current_main_letters.data = current_main_letters
+
+    def set_new_chosen_letter(self, new_main_letter):
+        instances_locations_by_letters = self.data_model.instances_locations_by_letters.data
+        if new_main_letter in instances_locations_by_letters:
+            new_current_location_duplicates = instances_locations_by_letters[new_main_letter]
         else:
             new_current_location_duplicates = []
         self.current_location_duplicates.data = new_current_location_duplicates
 
-    def reset_data(self):
-        random.seed(0)
-        current_main_letter = self.current_main_letter.data
-        main_letters = self.main_letters.data.copy()
-        instances_locations_by_letters = {k: v for k, v in self.instances_locations_by_letters.data.items()}
-        self.main_letters.data = set()
-        self.main_letters.data = main_letters
-        self.instances_locations_by_letters.data = instances_locations_by_letters
-        self.current_main_letter.data = current_main_letter
+    def set_current_location_duplicates(self, _):
+        main_letter = self.current_chosen_letter.data
+        instances_locations_by_letters = self.data_model.instances_locations_by_letters.data
+        if main_letter in instances_locations_by_letters:
+            new_current_location_duplicates = instances_locations_by_letters[main_letter]
+            if self.current_location_duplicates.data != new_current_location_duplicates:
+                self.current_location_duplicates.data = new_current_location_duplicates

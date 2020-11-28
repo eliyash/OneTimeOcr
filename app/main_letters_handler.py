@@ -4,7 +4,7 @@ from typing import Dict, Tuple, Callable
 import numpy as np
 from PIL import ImageTk, Image
 
-from app.data_model import DataModel
+from app.data_model import ViewModel
 from app.marker_manager import MarkerManager, SimpleMarkerDrawer
 from app.observers import Subject
 from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
@@ -14,10 +14,10 @@ EMPTY_IMAGE = np.ones((BOX_HEIGHT_MARGIN*2, BOX_WIDTH_MARGIN*2)) * 255
 
 class MainLettersHandler:
     def __init__(
-            self, data_model: DataModel, run_gui_action: Callable,
+            self, view_model: ViewModel, run_gui_action: Callable,
             top_bar, canvas, get_image_patch: Callable, translator: Callable
     ):
-        self._data_model = data_model
+        self._view_model = view_model
         self._run_gui_action = run_gui_action
         self._get_image_patch = get_image_patch
         self._translator = translator
@@ -30,12 +30,12 @@ class MainLettersHandler:
         self._top_bar = top_bar
         self._canvas = canvas
 
-        self._cv_image = np.array(self._data_model.image)
+        self._cv_image = np.array(self._view_model.data_model.image)
         self._chosen_letter_image = tk.Label(self._top_bar)
         self._chosen_letter_image.pack(side=tk.LEFT)
 
         self._main_markers_manager = MarkerManager(
-            self._data_model.main_letters, run_gui_action,
+            self._view_model.current_main_letters, run_gui_action,
             self._canvas, 'black', BOX_WIDTH_MARGIN + 2, BOX_HEIGHT_MARGIN + 3, translator=self._translator
         )
 
@@ -45,9 +45,11 @@ class MainLettersHandler:
         )
 
         self._set_chosen_letter_image(None)
-        self._data_model.instances_locations_by_letters.attach(run_gui_action(self.set_marker_managers_for_duplicates))
-        self._data_model.current_main_letter.attach(self._on_current_main_letter)
-        self._data_model.current_main_letter.attach(run_gui_action(self._set_chosen_letter_image))
+        self._view_model.data_model.instances_locations_by_letters.attach(
+            run_gui_action(self.set_marker_managers_for_duplicates)
+        )
+        self._view_model.current_chosen_letter.attach(self._on_current_main_letter)
+        self._view_model.current_chosen_letter.attach(run_gui_action(self._set_chosen_letter_image))
 
     def _on_current_main_letter(self, letter):
         self._current_main_letter_as_set.data = {letter} if letter else set()
@@ -66,9 +68,9 @@ class MainLettersHandler:
         return '#' + ''.join(['{:02x}'.format(random.randint(0, 255)) for _ in range(3)])
 
     def add_main_letter(self, letter_location):
-        data = self._data_model.main_letters.data
-        data.add(letter_location)
-        self._data_model.main_letters.data = data
+        data = self._view_model.data_model.instances_locations_by_letters.data
+        data[letter_location] = set()
+        self._view_model.data_model.instances_locations_by_letters.data = data
 
     def handle_change_in_main_letters(self, new_main_letters):
         old_main_letter = set(self._letters_markers_managers.keys())

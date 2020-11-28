@@ -15,5 +15,5 @@ IMAGE_PATH = r"..\..\test_pages\test_gez good - Copy.jpg"
 LETTERS_PATH = Path(r"..\..\test_pages\test_gez good")
 
 
-def are_points_close(letter_location, location):
-    return np.linalg.norm(np.array(location) - np.array(letter_location)) < MAX_DIST
+def are_points_close(letter_location, location, dist=MAX_DIST):
+    return np.linalg.norm(np.array(location) - np.array(letter_location)) < dist
