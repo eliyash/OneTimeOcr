@@ -1,5 +1,4 @@
 import random
-from collections import defaultdict
 from typing import Dict
 
 from PIL import Image
@@ -10,7 +9,6 @@ from app.observers import Subject
 class DataModel:
     def __init__(self, image_path: str):
         self._image = Image.open(image_path)
-        # self.instances_locations_by_letters = Subject(defaultdict(set))
         self.instances_locations_by_letters = Subject(dict())
 
     @property
@@ -37,19 +35,19 @@ class ViewModel:
         self.data_model.instances_locations_by_letters.attach(self.set_current_location_duplicates)
 
     def handle_main_letters_change(self, new_instances_locations_by_letters: Dict):
-        current_chosen_letter = self.current_chosen_letter
-        current_main_letters = set(new_instances_locations_by_letters.keys())
-        letters_to_add = current_main_letters - self.current_main_letters.data
+        current_chosen_letter = self.current_chosen_letter.data
+        new_main_letters = set(new_instances_locations_by_letters.keys())
+        letters_to_add = new_main_letters - self.current_main_letters.data
         if letters_to_add:
             self.current_chosen_letter.data = list(letters_to_add)[0]
-        elif current_chosen_letter in current_main_letters:
+        elif current_chosen_letter in new_main_letters:
             pass
-        elif current_main_letters:
-            self.current_chosen_letter.data = list(current_main_letters)[0]
+        elif new_main_letters:
+            self.current_chosen_letter.data = list(new_main_letters)[0]
         else:
             self.current_chosen_letter.data = None
 
-        self.current_main_letters.data = current_main_letters
+        self.current_main_letters.data = new_main_letters
 
     def set_new_chosen_letter(self, new_main_letter):
         instances_locations_by_letters = self.data_model.instances_locations_by_letters.data
