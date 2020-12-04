@@ -34,11 +34,6 @@ class MainLettersHandler:
         self._chosen_letter_image = tk.Label(self._top_bar)
         self._chosen_letter_image.pack(side=tk.LEFT)
 
-        self._main_markers_manager = MarkerManager(
-            self._view_model.current_main_letters, run_gui_action,
-            self._canvas, 'black', BOX_WIDTH_MARGIN + 2, BOX_HEIGHT_MARGIN + 3, translator=self._translator
-        )
-
         self._chosen_letter_markers_manager = MarkerManager(
             self._current_main_letter_as_set, run_gui_action,
             self._canvas, 'green', BOX_WIDTH_MARGIN + 4, BOX_HEIGHT_MARGIN + 6, translator=self._translator
@@ -69,7 +64,7 @@ class MainLettersHandler:
 
     def add_main_letter(self, letter_location):
         data = self._view_model.data_model.instances_locations_by_letters.data
-        data[letter_location] = set()
+        data[letter_location] = {letter_location}
         self._view_model.data_model.instances_locations_by_letters.data = data
 
     def handle_change_in_main_letters(self, new_main_letters):

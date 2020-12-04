@@ -112,7 +112,11 @@ class Gui:
         self._save_letters_callback(folder, self._view_model.data_model.instances_locations_by_letters.data)
 
     def _on_look_for_letter(self):
-        self._on_look_for_letter_callback(self._view_model.current_chosen_letter.data, self._duplicates.get())
+        letter_key = self._view_model.current_chosen_letter.data
+        instances_locations_by_letters = self._view_model.data_model.instances_locations_by_letters.data
+        if letter_key in instances_locations_by_letters and instances_locations_by_letters[letter_key]:
+            letter = next(iter((instances_locations_by_letters[letter_key])))
+            self._on_look_for_letter_callback(letter, self._duplicates.get())
 
     def _on_mouse_press_left(self, event):
         location = self._translator((event.x, event.y))
@@ -136,7 +140,7 @@ class Gui:
     def _on_mouse_press_right(self, event):
         location = self._translator((event.x, event.y))
         instances_locations_by_letters = self._view_model.data_model.instances_locations_by_letters.data
-        for letter_location in instances_locations_by_letters.keys():
+        for letter_location in list(instances_locations_by_letters.keys()):
             if are_points_close(letter_location, location):
                 instances_locations_by_letters.pop(letter_location)
         self._view_model.data_model.instances_locations_by_letters.data = instances_locations_by_letters

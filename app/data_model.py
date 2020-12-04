@@ -26,9 +26,9 @@ class ViewModel:
     def __init__(self, data_modal: DataModel):
         self.data_model = data_modal
 
+        self.current_main_letters = Subject(set())
         self.current_chosen_letter = Subject()
         self.current_location_duplicates = Subject(set())
-        self.current_main_letters = Subject(set())
 
         self.current_chosen_letter.attach(self.set_new_chosen_letter)
         self.data_model.instances_locations_by_letters.attach(self.handle_main_letters_change)
@@ -39,15 +39,22 @@ class ViewModel:
         new_main_letters = set(new_instances_locations_by_letters.keys())
         letters_to_add = new_main_letters - self.current_main_letters.data
         if letters_to_add:
-            self.current_chosen_letter.data = list(letters_to_add)[0]
+            self.current_chosen_letter.data = next(iter(letters_to_add))
         elif current_chosen_letter in new_main_letters:
             pass
         elif new_main_letters:
-            self.current_chosen_letter.data = list(new_main_letters)[0]
+            self.current_chosen_letter.data = next(iter(new_main_letters))
         else:
             self.current_chosen_letter.data = None
 
         self.current_main_letters.data = new_main_letters
+
+    def set_current_location_duplicates(self, new_instances_locations_by_letters: Dict):
+        main_letter = self.current_chosen_letter.data
+        if main_letter in new_instances_locations_by_letters:
+            new_current_location_duplicates = new_instances_locations_by_letters[main_letter]
+            if self.current_location_duplicates.data != new_current_location_duplicates:
+                self.current_location_duplicates.data = new_current_location_duplicates
 
     def set_new_chosen_letter(self, new_main_letter):
         instances_locations_by_letters = self.data_model.instances_locations_by_letters.data
@@ -56,11 +63,3 @@ class ViewModel:
         else:
             new_current_location_duplicates = []
         self.current_location_duplicates.data = new_current_location_duplicates
-
-    def set_current_location_duplicates(self, _):
-        main_letter = self.current_chosen_letter.data
-        instances_locations_by_letters = self.data_model.instances_locations_by_letters.data
-        if main_letter in instances_locations_by_letters:
-            new_current_location_duplicates = instances_locations_by_letters[main_letter]
-            if self.current_location_duplicates.data != new_current_location_duplicates:
-                self.current_location_duplicates.data = new_current_location_duplicates
