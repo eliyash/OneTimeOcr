@@ -5,6 +5,7 @@ import numpy as np
 from PIL import ImageTk, Image
 
 from app.data_model import ViewModel
+from app.tools import SpecialGroupsEnum
 
 
 class LettersImagesFrame:
@@ -63,8 +64,13 @@ class DuplicateLettersFrame(LettersImagesFrame):
         self._view_model.current_location_duplicates.attach(self._run_gui_action(self.show_images))
 
     def _remove_letter(self, location):
+        current_key = self._view_model.current_chosen_letter.data
         data = self._view_model.data_model.instances_locations_by_letters.data
         data[self._view_model.current_chosen_letter.data].remove(location)
+        if current_key is not SpecialGroupsEnum.UNKNOWN:
+            if SpecialGroupsEnum.UNKNOWN not in data:
+                data[SpecialGroupsEnum.UNKNOWN] = set()
+            data[SpecialGroupsEnum.UNKNOWN].add(location)
         self._view_model.data_model.instances_locations_by_letters.data = data
 
     def _set_actions(self, label, location):

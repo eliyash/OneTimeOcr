@@ -11,7 +11,7 @@ from typing import Set, Dict, Tuple
 from app.data_model import DataModel
 from app.gui import Gui
 from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, are_points_close, IMAGE_PATH, LETTERS_PATH, \
-    MAX_LETTER_INCIDENTS
+    MAX_LETTER_INCIDENTS, SpecialGroupsEnum
 from letter_classifier.identify_letter import identify_letters
 from letter_detector.find_centers import detect_letters
 import logging
@@ -36,13 +36,12 @@ class App:
         return lambda *args, **kwargs: self._executor.submit(func, *args, **kwargs)
 
     @staticmethod
-    def _get_image_patch(image, key, scale=False):
+    def _get_image_patch(image, key):
         (x_center, y_center) = key
         letter_image = image[
            y_center - BOX_HEIGHT_MARGIN: y_center + BOX_HEIGHT_MARGIN,
            x_center - BOX_WIDTH_MARGIN: x_center + BOX_WIDTH_MARGIN
         ]
-        letter_image = letter_image[::2, ::2] if scale else letter_image
         return letter_image
 
     @classmethod
@@ -86,10 +85,10 @@ class App:
         logger.info('detecting letters')
         found_locations = detect_letters(IMAGE_PATH)
         logger.info('letters detected')
-        example_letter = list(found_locations)[0]
-        self._set_duplicate_letters(example_letter, found_locations)
+        self._set_duplicate_letters(SpecialGroupsEnum.UNKNOWN, found_locations)
         logger.info('detected letters showed, identifying letters')
         letter_to_locations_dist = identify_letters(IMAGE_PATH, found_locations)
+        letter_to_locations_dist[SpecialGroupsEnum.UNKNOWN] = set()
         logger.info('letters identified')
         self._data_model.instances_locations_by_letters.data = letter_to_locations_dist
         logger.info('all identify letters showed')

@@ -9,8 +9,6 @@ from app.marker_manager import MarkerManager, SimpleMarkerDrawer
 from app.observers import Subject
 from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
 
-EMPTY_IMAGE = np.ones((BOX_HEIGHT_MARGIN*2, BOX_WIDTH_MARGIN*2)) * 255
-
 
 class MainLettersHandler:
     def __init__(
@@ -50,10 +48,7 @@ class MainLettersHandler:
         self._current_main_letter_as_set.data = {letter} if letter else set()
 
     def _set_chosen_letter_image(self, letter):
-        if letter:
-            cv_letter_image = self._get_image_patch(self._cv_image, letter)
-        else:
-            cv_letter_image = EMPTY_IMAGE
+        cv_letter_image = self._get_image_patch(self._cv_image, letter)
         tk_letter_image = ImageTk.PhotoImage(Image.fromarray(cv_letter_image))
         self._chosen_letter_image.config(image=tk_letter_image)
         self._chosen_letter_image.image = tk_letter_image

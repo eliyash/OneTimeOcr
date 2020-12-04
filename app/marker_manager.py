@@ -35,11 +35,12 @@ class MarkerDrawer:
         self._canvas.delete(location + (self._color,))
 
     def _update_letters(self, updated_letters: Set):
-        letters_to_remove = self._local_instances_locations - updated_letters
-        letters_to_add = updated_letters - self._local_instances_locations
+        updated_letters_locations = {letter for letter in updated_letters if type(letter) is tuple}
+        letters_to_remove = self._local_instances_locations - updated_letters_locations
+        letters_to_add = updated_letters_locations - self._local_instances_locations
         [self._remove_a_box(letter_to_remove) for letter_to_remove in letters_to_remove]
         [self._add_a_box(letter_to_add) for letter_to_add in letters_to_add]
-        self._local_instances_locations = updated_letters.copy()
+        self._local_instances_locations = updated_letters_locations
 
 
 class MarkerManager(MarkerDrawer):

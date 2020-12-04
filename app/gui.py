@@ -8,7 +8,8 @@ from PIL import ImageTk
 from app.data_model import DataModel, ViewModel
 from app.letter_images import MainLettersScreen, DuplicateLettersFrame
 from app.main_letters_handler import MainLettersHandler
-from app.tools import are_points_close, NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES
+from app.tools import are_points_close, NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES, SpecialGroupsEnum, \
+    UNKNOWN_IMAGE, EMPTY_IMAGE
 
 
 class Gui:
@@ -75,16 +76,17 @@ class Gui:
         self._duplicates.pack(side=tk.LEFT)
 
         self._main_letters_handler = MainLettersHandler(
-            self._view_model, self._run_gui_action, self._top_bar, self._canvas, self._get_image_patch, self._translator
+            self._view_model, self._run_gui_action, self._top_bar,
+            self._canvas, self._get_image_from_key, self._translator
         )
 
         self._main_letters_screen = MainLettersScreen(
             self._view_model, self._run_gui_action,
-            lambda image, key: self._get_image_patch(image, key, scale=True), self._main_letters_bar
+            lambda image, key: self._get_image_from_key(image, key, scale=True), self._main_letters_bar
         )
 
         self._duplicates_letters_screen = DuplicateLettersFrame(
-            self._view_model, self._run_gui_action, self._get_image_patch, self._duplicates_letters_frame
+            self._view_model, self._run_gui_action, self._get_image_from_key, self._duplicates_letters_frame
         )
 
         self._switch_mode_frame = tk.Frame(self._top_bar)
@@ -100,6 +102,15 @@ class Gui:
             self._switch_mode.append(rb)
 
         self._text_frame.tkraise()
+
+    def _get_image_from_key(self, image, key, scale=False):
+        if type(key) == tuple:
+            key_image = self._get_image_patch(image, key)
+        elif key is SpecialGroupsEnum.UNKNOWN:
+            key_image = UNKNOWN_IMAGE
+        else:
+            key_image = EMPTY_IMAGE
+        return key_image[::2, ::2] if scale else key_image
 
     def _translator(self, location, inverse=False):
         return tuple(axis + offset * (-1 if inverse else 1) for axis, offset in zip(location, self._translation))
