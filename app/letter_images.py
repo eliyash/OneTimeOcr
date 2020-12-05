@@ -25,6 +25,7 @@ class LettersImagesFrame:
         self._tk_image = ImageTk.PhotoImage(self._view_model.data_model.image)
         self._currentFrame = None
         self._create_new_frame()
+        self._map_keys_by_widgets = {}
 
     def _remove_images(self):
         self._currentFrame.destroy()
@@ -34,17 +35,18 @@ class LettersImagesFrame:
         self._currentFrame = tk.Frame(self._frame)
         self._currentFrame.grid(row=0, column=0)
 
-    def _remove_letter(self, location):
-        pass
-
     def _set_actions(self, label, location):
         pass
 
-    def _del_image(self, label, location):
+    def _remove_letter(self, location):
+        pass
+
+    def _del_image_and_letter(self, label, location):
         label.destroy()
         self._remove_letter(location)
 
     def show_images(self, current_location_duplicates):
+        self._map_keys_by_widgets = {}
         self._remove_images()
         cv_image = np.array(self._view_model.data_model.image)
         for i, location in enumerate(current_location_duplicates):
@@ -56,6 +58,7 @@ class LettersImagesFrame:
             label.image = tk_letter_image
             self._set_actions(label, location)
             label.grid(row=row, column=column)
+            self._map_keys_by_widgets[label] = location
 
 
 class DuplicateLettersFrame(LettersImagesFrame):
@@ -64,17 +67,34 @@ class DuplicateLettersFrame(LettersImagesFrame):
         self._view_model.current_location_duplicates.attach(self._run_gui_action(self.show_images))
 
     def _remove_letter(self, location):
-        current_key = self._view_model.current_chosen_letter.data
         data = self._view_model.data_model.instances_locations_by_letters.data
         data[self._view_model.current_chosen_letter.data].remove(location)
+        self._view_model.data_model.instances_locations_by_letters.data = data
+
+    def _clear_letter_key(self, label, location):
+        current_key = self._view_model.current_chosen_letter.data
+        self._del_image_and_letter(label, location)
         if current_key is not SpecialGroupsEnum.UNKNOWN:
-            if SpecialGroupsEnum.UNKNOWN not in data:
-                data[SpecialGroupsEnum.UNKNOWN] = set()
-            data[SpecialGroupsEnum.UNKNOWN].add(location)
+            self._add_letter(SpecialGroupsEnum.UNKNOWN, location)
+
+    def _try_move_letter(self, event, label, location):
+        widget = event.widget.winfo_containing(event.x_root, event.y_root)
+        if widget and widget in self._view_model.map_keys_by_widgets:
+            hovered_key = self._view_model.map_keys_by_widgets[widget]
+            self._del_image_and_letter(label, location)
+            self._add_letter(hovered_key, location)
+            label.destroy()
+
+    def _add_letter(self, key, location):
+        data = self._view_model.data_model.instances_locations_by_letters.data
+        if key not in data:
+            data[key] = set()
+        data[key].add(location)
         self._view_model.data_model.instances_locations_by_letters.data = data
 
     def _set_actions(self, label, location):
-        label.bind("<Button-3>", lambda e: self._del_image(label, location))
+        label.bind("<Button-3>", lambda e: self._clear_letter_key(label, location))
+        label.bind("<ButtonRelease-1>", lambda e: self._try_move_letter(e, label, location))
 
 
 class MainLettersScreen(LettersImagesFrame):
@@ -85,23 +105,16 @@ class MainLettersScreen(LettersImagesFrame):
 
     def show_images(self, instances_locations_by_letters):
         super().show_images(list(instances_locations_by_letters.keys()))
+        self._view_model.map_keys_by_widgets = self._map_keys_by_widgets
 
     def _remove_letter(self, location):
         data = self._view_model.data_model.instances_locations_by_letters.data
         data.pop(location)
         self._view_model.data_model.instances_locations_by_letters.data = data
 
-    def _set_main_letter(self, _, location):
+    def _set_main_letter(self, location):
         self._view_model.current_chosen_letter.data = location
 
-    # def _f(self, e):
-    #     release_point = e.widget.winfo_x() + e.x, e.widget.winfo_y() + e.y
-    #     release_point
-    #     for location, label in self._map.items():
-    #         if are_points_close(location, release_point):
-    #             label.destroy()
-
     def _set_actions(self, label, location):
-        label.bind("<Button-1>", lambda e: self._set_main_letter(label, location))
-        # label.bind("<ButtonRelease-1>", self._f)
-        label.bind("<Button-3>", lambda e: self._del_image(label, location))
+        label.bind("<Button-3>", lambda e: self._del_image_and_letter(label, location))
+        label.bind("<Button-1>", lambda e: self._set_main_letter(location))

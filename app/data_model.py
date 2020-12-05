@@ -34,6 +34,8 @@ class ViewModel:
         self.data_model.instances_locations_by_letters.attach(self.handle_main_letters_change)
         self.data_model.instances_locations_by_letters.attach(self.set_current_location_duplicates)
 
+        self.map_keys_by_widgets = {}
+
     def handle_main_letters_change(self, new_instances_locations_by_letters: Dict):
         current_chosen_letter = self.current_chosen_letter.data
         new_main_letters = set(new_instances_locations_by_letters.keys())
