@@ -1,8 +1,7 @@
 import random
-from typing import Dict, List
-
-import cv2
+import numpy as np
 from PIL import Image
+from typing import Dict, List
 
 from app.observers import Subject
 
@@ -31,7 +30,7 @@ class DataModel:
             self._instances_locations_per_image[self.current_page] = self.instances_locations_by_letters.data
         self.image_path = self._images_paths[index]
         self.pil_image = Image.open(str(self.image_path))
-        self.cv_image = cv2.imread(str(self.image_path), cv2.IMREAD_GRAYSCALE).astype('float16') / 256
+        self.cv_image = np.array(self.pil_image)
         self.instances_locations_by_letters.data = self._instances_locations_per_image[index]
         self.current_page = index
 
