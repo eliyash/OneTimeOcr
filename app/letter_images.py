@@ -22,7 +22,7 @@ class LettersImagesFrame:
         self._get_image_patch = get_image_patch
         self._frame = frame
 
-        self._tk_image = ImageTk.PhotoImage(self._view_model.data_model.image)
+        self._tk_image = ImageTk.PhotoImage(self._view_model.data_model.pil_image)
         self._currentFrame = None
         self._create_new_frame()
         self._map_keys_by_widgets = {}
@@ -48,7 +48,7 @@ class LettersImagesFrame:
     def show_images(self, current_location_duplicates):
         self._map_keys_by_widgets = {}
         self._remove_images()
-        cv_image = np.array(self._view_model.data_model.image)
+        cv_image = np.array(self._view_model.data_model.pil_image)
         for i, location in enumerate(current_location_duplicates):
             row = i // self._letters_in_a_row
             column = i % self._letters_in_a_row

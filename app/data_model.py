@@ -1,19 +1,39 @@
 import random
-from typing import Dict
+from typing import Dict, List
 
+import cv2
 from PIL import Image
 
 from app.observers import Subject
 
 
 class DataModel:
-    def __init__(self, image_path: str):
-        self._image = Image.open(image_path)
+    def __init__(self, image_paths: List[str]):
+        self._images_paths = image_paths
+        self._instances_locations_per_image = [dict() for _ in image_paths]
         self.instances_locations_by_letters = Subject(dict())
 
+        self.page = Subject(None)
+        self.page.attach(self.set_page)
+        self.current_page = None
+
+        self.pil_image = None
+        self.cv_image = None
+        self.image_path = None
+        self.page.data = 0
+
     @property
-    def image(self):
-        return self._image
+    def num_of_pages(self):
+        return len(self._images_paths)
+
+    def set_page(self, index: int):
+        if self.current_page:
+            self._instances_locations_per_image[self.current_page] = self.instances_locations_by_letters.data
+        self.image_path = self._images_paths[index]
+        self.pil_image = Image.open(str(self.image_path))
+        self.cv_image = cv2.imread(str(self.image_path), cv2.IMREAD_GRAYSCALE).astype('float16') / 256
+        self.instances_locations_by_letters.data = self._instances_locations_per_image[index]
+        self.current_page = index
 
     def reset_data(self):
         random.seed(0)

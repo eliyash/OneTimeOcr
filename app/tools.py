@@ -3,8 +3,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-IMAGE_PATH = r"..\..\test_pages\test_gez good - Copy.jpg"
-LETTERS_PATH = Path(r"..\..\test_pages\test_gez good")
+DATA_ROOT = Path(r"..\..\data")
+IMAGES_PATH = DATA_ROOT / 'images'
+LETTERS_PATH = DATA_ROOT / 'letters'
 
 MAX_DIST = 30
 BOX_HEIGHT_MARGIN = 30

@@ -1,7 +1,6 @@
 import random
 import tkinter as tk
 from typing import Dict, Tuple, Callable
-import numpy as np
 from PIL import ImageTk, Image
 
 from app.data_model import ViewModel
@@ -28,7 +27,6 @@ class MainLettersHandler:
         self._top_bar = top_bar
         self._canvas = canvas
 
-        self._cv_image = np.array(self._view_model.data_model.image)
         self._chosen_letter_image = tk.Label(self._top_bar)
         self._chosen_letter_image.pack(side=tk.LEFT)
 
@@ -48,7 +46,7 @@ class MainLettersHandler:
         self._current_main_letter_as_set.data = {letter} if letter else set()
 
     def _set_chosen_letter_image(self, letter):
-        cv_letter_image = self._get_image_patch(self._cv_image, letter)
+        cv_letter_image = self._get_image_patch(self._view_model.data_model.cv_image, letter)
         tk_letter_image = ImageTk.PhotoImage(Image.fromarray(cv_letter_image))
         self._chosen_letter_image.config(image=tk_letter_image)
         self._chosen_letter_image.image = tk_letter_image

@@ -21,6 +21,7 @@ class Gui:
             network_detect_callback: Callable,
             save_letters_callback: Callable,
             get_images_by_locations_callback: Callable,
+            page_move_callback: Callable,
             translation: Tuple = (0, 0)
     ):
         self._view_model = ViewModel(data_model)
@@ -29,10 +30,11 @@ class Gui:
         self._network_detect_callback = network_detect_callback
         self._save_letters_callback = save_letters_callback
         self._get_images_by_locations_callback = get_images_by_locations_callback
+        self._page_move_callback = page_move_callback
         self._translation = translation
 
         self._window = tk.Tk()
-        self._tk_image = ImageTk.PhotoImage(self._view_model.data_model.image)
+        self._tk_image = ImageTk.PhotoImage(self._view_model.data_model.pil_image)
         self._top_bar = tk.Frame(self._window)
         self._top_bar.grid(row=0, column=0, sticky="nsew")
 
@@ -41,6 +43,12 @@ class Gui:
 
         self._save_button = tk.Button(self._top_bar, text="save lettres", command=self._on_save_all_letters)
         self._save_button.pack(side=tk.LEFT)
+
+        self._prev_button = tk.Button(self._top_bar, text="Prev", command=lambda: self._page_move_callback(back=True))
+        self._prev_button.pack(side=tk.LEFT)
+
+        self._next_button = tk.Button(self._top_bar, text="Next", command=lambda: self._page_move_callback(back=False))
+        self._next_button.pack(side=tk.LEFT)
 
         self._look_for_dup_button = tk.Button(self._top_bar, text="look for letter", command=self._on_look_for_letter)
         self._look_for_dup_button.pack(side=tk.LEFT)
@@ -57,7 +65,7 @@ class Gui:
         self._main_letters_frame = tk.Frame(self._window)
         self._main_letters_frame.grid(row=2, column=0, sticky="nsew")
 
-        width, height = self._view_model.data_model.image.size
+        width, height = self._view_model.data_model.pil_image.size
         self._canvas = tk.Canvas(self._text_frame, width=width, height=height)
         self._canvas.pack(side=tk.LEFT)
         self._canvas_image = self._canvas.create_image(0, 0, image=self._tk_image, anchor=tk.NW)
@@ -102,6 +110,12 @@ class Gui:
             self._switch_mode.append(rb)
 
         self._text_frame.tkraise()
+
+        # self._view_model.data_model.page.attach()
+
+    # def _update_image(self, _):
+    #     self._canvas_image.image =
+    #     self._canvas_image = self._canvas.create_image(0, 0, image=self._tk_image, anchor=tk.NW)
 
     def _get_image_from_key(self, image, key, scale=False):
         if type(key) == tuple:
