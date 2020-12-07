@@ -29,6 +29,7 @@ class App:
             self._get_image_patch
         )
         self._data_model.page.data = 0
+        self._data_model.different_letters.data = {UNKNOWN_KEY: UNKNOWN_IMAGE}
 
     def _wrap_to_executor(self, func):
         return lambda *args, **kwargs: self._executor.submit(func, *args, **kwargs)

@@ -6,13 +6,7 @@ from app.tools import UNKNOWN_KEY
 
 
 class LettersImagesFrame:
-    def __init__(
-            self,
-            view_model: ViewModel,
-            run_gui_action: Callable,
-            get_image_patch: Callable,
-            frame
-    ):
+    def __init__(self, view_model: ViewModel, run_gui_action: Callable, get_image_patch: Callable, frame):
         self._letters_in_a_row = 10
         self._view_model = view_model
         self._run_gui_action = run_gui_action
@@ -33,13 +27,6 @@ class LettersImagesFrame:
 
     def _set_actions(self, label, location):
         pass
-
-    def _remove_letter(self, location):
-        pass
-
-    def _del_image_and_letter(self, label, location):
-        label.destroy()
-        self._remove_letter(location)
 
     def show_images(self, current_location_duplicates):
         self._map_keys_by_widgets = {}
@@ -66,30 +53,27 @@ class DuplicateLettersFrame(LettersImagesFrame):
         data[self._view_model.current_chosen_letter.data].remove(location)
         self._view_model.data_model.instances_locations_by_letters.data = data
 
-    def _clear_letter_key(self, label, location):
+    def _clear_letter_key(self, location):
         current_key = self._view_model.current_chosen_letter.data
-        self._del_image_and_letter(label, location)
+        self._remove_letter(location)
         if current_key is not UNKNOWN_KEY:
             self._add_letter(UNKNOWN_KEY, location)
 
-    def _try_move_letter(self, event, label, location):
+    def _try_move_letter(self, event, location):
         widget = event.widget.winfo_containing(event.x_root, event.y_root)
         if widget and widget in self._view_model.map_keys_by_widgets:
             hovered_key = self._view_model.map_keys_by_widgets[widget]
-            self._del_image_and_letter(label, location)
+            self._remove_letter(location)
             self._add_letter(hovered_key, location)
-            label.destroy()
 
     def _add_letter(self, key, location):
         data = self._view_model.data_model.instances_locations_by_letters.data
-        if key not in data:
-            data[key] = set()
         data[key].add(location)
         self._view_model.data_model.instances_locations_by_letters.data = data
 
     def _set_actions(self, label, location):
-        label.bind("<Button-3>", lambda e: self._clear_letter_key(label, location))
-        label.bind("<ButtonRelease-1>", lambda e: self._try_move_letter(e, label, location))
+        label.bind("<Button-3>", lambda e: self._clear_letter_key(location))
+        label.bind("<ButtonRelease-1>", lambda e: self._try_move_letter(e, location))
 
 
 class MainLettersScreen(LettersImagesFrame):
@@ -103,13 +87,24 @@ class MainLettersScreen(LettersImagesFrame):
         self._view_model.map_keys_by_widgets = self._map_keys_by_widgets
 
     def _remove_letter(self, location):
+        if location == UNKNOWN_KEY:
+            self.reset_unknown_letters()
+        else:
+            self.remove_letter(location)
+
+    def remove_letter(self, location):
         data = self._view_model.data_model.different_letters.data
         data.pop(location)
         self._view_model.data_model.different_letters.data = data
+
+    def reset_unknown_letters(self):
+        data = self._view_model.data_model.instances_locations_by_letters.data
+        data[UNKNOWN_KEY] = set()
+        self._view_model.data_model.instances_locations_by_letters.data = data
 
     def _set_main_letter(self, location):
         self._view_model.current_chosen_letter.data = location
 
     def _set_actions(self, label, location):
-        label.bind("<Button-3>", lambda e: self._del_image_and_letter(label, location))
+        label.bind("<Button-3>", lambda e: self._remove_letter(location))
         label.bind("<Button-1>", lambda e: self._set_main_letter(location))

@@ -12,7 +12,7 @@ class DataModel:
         self.instances_locations_per_image = [dict() for _ in self.images_paths]
         self.is_page_ready_map = [False for _ in self.images_paths]
 
-        self.different_letters = Subject(dict())
+        self.different_letters = Subject()
         self.instances_locations_by_letters = Subject(dict())
 
         self.page = Subject()
@@ -90,14 +90,16 @@ class ViewModel:
     def set_current_location_duplicates(self, new_instances_locations_by_letters: Dict):
         main_letter = self.current_chosen_letter.data
         if main_letter in new_instances_locations_by_letters:
-            new_current_location_duplicates = new_instances_locations_by_letters[main_letter]
+            new_current_location_duplicates = new_instances_locations_by_letters[main_letter].copy()
             if self.current_location_duplicates.data != new_current_location_duplicates:
                 self.current_location_duplicates.data = new_current_location_duplicates
 
     def set_new_chosen_letter(self, new_main_letter):
         instances_locations_by_letters = self.data_model.instances_locations_by_letters.data
         if new_main_letter in instances_locations_by_letters:
-            new_current_location_duplicates = instances_locations_by_letters[new_main_letter]
+            new_current_location_duplicates = instances_locations_by_letters[new_main_letter].copy()
         else:
             new_current_location_duplicates = []
-        self.current_location_duplicates.data = new_current_location_duplicates
+
+        if self.current_location_duplicates.data != new_current_location_duplicates:
+            self.current_location_duplicates.data = new_current_location_duplicates
