@@ -1,13 +1,14 @@
+# TODO: make self._observers as set again!
 class Subject:
     def __init__(self, init_val=None):
-        self._observers = set()
+        self._observers = list()
         self._subject_state = init_val
 
     def attach(self, observer):
-        self._observers.add(observer)
+        self._observers.append(observer)
 
     def detach(self, observer):
-        self._observers.discard(observer)
+        self._observers.remove(observer)
 
     def _notify(self):
         for observer in self._observers:

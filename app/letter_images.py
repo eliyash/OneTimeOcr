@@ -1,11 +1,8 @@
 import tkinter as tk
 from typing import Callable
-import numpy as np
-
 from PIL import ImageTk, Image
-
 from app.data_model import ViewModel
-from app.tools import SpecialGroupsEnum
+from app.tools import UNKNOWN_KEY
 
 
 class LettersImagesFrame:
@@ -22,7 +19,6 @@ class LettersImagesFrame:
         self._get_image_patch = get_image_patch
         self._frame = frame
 
-        self._tk_image = ImageTk.PhotoImage(self._view_model.data_model.pil_image)
         self._currentFrame = None
         self._create_new_frame()
         self._map_keys_by_widgets = {}
@@ -48,11 +44,10 @@ class LettersImagesFrame:
     def show_images(self, current_location_duplicates):
         self._map_keys_by_widgets = {}
         self._remove_images()
-        cv_image = np.array(self._view_model.data_model.pil_image)
         for i, location in enumerate(current_location_duplicates):
             row = i // self._letters_in_a_row
             column = i % self._letters_in_a_row
-            cv_letter_image = self._get_image_patch(cv_image, location)
+            cv_letter_image = self._get_image_patch(location)
             tk_letter_image = ImageTk.PhotoImage(Image.fromarray(cv_letter_image))
             label = tk.Label(self._currentFrame, image=tk_letter_image)
             label.image = tk_letter_image
@@ -74,8 +69,8 @@ class DuplicateLettersFrame(LettersImagesFrame):
     def _clear_letter_key(self, label, location):
         current_key = self._view_model.current_chosen_letter.data
         self._del_image_and_letter(label, location)
-        if current_key is not SpecialGroupsEnum.UNKNOWN:
-            self._add_letter(SpecialGroupsEnum.UNKNOWN, location)
+        if current_key is not UNKNOWN_KEY:
+            self._add_letter(UNKNOWN_KEY, location)
 
     def _try_move_letter(self, event, label, location):
         widget = event.widget.winfo_containing(event.x_root, event.y_root)
@@ -108,9 +103,9 @@ class MainLettersScreen(LettersImagesFrame):
         self._view_model.map_keys_by_widgets = self._map_keys_by_widgets
 
     def _remove_letter(self, location):
-        data = self._view_model.data_model.instances_locations_by_letters.data
+        data = self._view_model.data_model.different_letters.data
         data.pop(location)
-        self._view_model.data_model.instances_locations_by_letters.data = data
+        self._view_model.data_model.different_letters.data = data
 
     def _set_main_letter(self, location):
         self._view_model.current_chosen_letter.data = location

@@ -1,48 +1,60 @@
 import random
-import numpy as np
+from pathlib import Path
+from typing import Dict, Optional
 from PIL import Image
-from typing import Dict, List
-
 from app.observers import Subject
+from app.tools import UNKNOWN_KEY, get_values_to_add_and_remove
 
 
 class DataModel:
-    def __init__(self, image_paths: List[str]):
-        self._images_paths = image_paths
-        self._instances_locations_per_image = [dict() for _ in image_paths]
-        self._is_page_ready_map = [False for _ in image_paths]
+    def __init__(self, image_paths: Path):
+        self.images_paths = [path for path in image_paths.iterdir()]
+        self.instances_locations_per_image = [dict() for _ in self.images_paths]
+        self.is_page_ready_map = [False for _ in self.images_paths]
 
+        self.different_letters = Subject(dict())
         self.instances_locations_by_letters = Subject(dict())
 
-        self.page = Subject(None)
-        self.page.attach(self.set_page)
-        self.current_page = None
-
+        self.page = Subject()
+        self.current_page = None  # type: Optional[int]
         self.pil_image = None
-        self.cv_image = None
         self.image_path = None
-        self.page.data = 0
+
+        self.page.attach(self.set_page)
+        self.different_letters.attach(self._on_different_letters)
+
+    def _on_different_letters(self, different_letters: Dict):
+        self.instances_locations_per_image[self.current_page] = self.instances_locations_by_letters.data
+        for page, instances_locations in enumerate(self.instances_locations_per_image):
+            to_remove, to_add = get_values_to_add_and_remove(instances_locations, different_letters)
+            instances_locations.update({key: set() for key in to_add})
+            if to_remove:
+                self.is_page_ready_map[page] = False
+                removed_values = [instances_locations.pop(key) for key in to_remove]
+                unknown_values = instances_locations[UNKNOWN_KEY] if UNKNOWN_KEY in instances_locations else set()
+                unknown_values.union({location for elem_in_pop in removed_values for location in elem_in_pop})
+                instances_locations[UNKNOWN_KEY] = unknown_values
+        self.instances_locations_by_letters.data = self.instances_locations_per_image[self.current_page]
 
     @property
     def num_of_pages(self):
-        return len(self._images_paths)
+        return len(self.images_paths)
 
     def set_page_state(self, value):
-        self._is_page_ready_map[self.current_page] = value
+        self.is_page_ready_map[self.current_page] = value
 
     def set_page(self, index: int):
         if self.current_page:
-            self._instances_locations_per_image[self.current_page] = self.instances_locations_by_letters.data
-        self.image_path = self._images_paths[index]
+            self.instances_locations_per_image[self.current_page] = self.instances_locations_by_letters.data
+        self.image_path = self.images_paths[index]
         self.pil_image = Image.open(str(self.image_path))
-        self.cv_image = np.array(self.pil_image)
-        self.instances_locations_by_letters.data = self._instances_locations_per_image[index]
+        self.instances_locations_by_letters.data = self.instances_locations_per_image[index]
         self.current_page = index
 
     def reset_data(self):
         random.seed(0)
         current_data = self.instances_locations_by_letters.data
-        self.instances_locations_by_letters.data = dict()
+        self.instances_locations_by_letters.data = {k: set() for k in current_data.keys()}
         self.instances_locations_by_letters.data = current_data
 
 

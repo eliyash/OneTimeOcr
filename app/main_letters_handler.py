@@ -6,7 +6,7 @@ from PIL import ImageTk, Image
 from app.data_model import ViewModel
 from app.marker_manager import MarkerManager, SimpleMarkerDrawer
 from app.observers import Subject
-from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
+from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, EMPTY_IMAGE, UNKNOWN_KEY
 
 
 class MainLettersHandler:
@@ -46,7 +46,10 @@ class MainLettersHandler:
         self._current_main_letter_as_set.data = {letter} if letter else set()
 
     def _set_chosen_letter_image(self, letter):
-        cv_letter_image = self._get_image_patch(self._view_model.data_model.cv_image, letter)
+        if letter:
+            cv_letter_image = self._view_model.data_model.different_letters.data[letter]
+        else:
+            cv_letter_image = EMPTY_IMAGE
         tk_letter_image = ImageTk.PhotoImage(Image.fromarray(cv_letter_image))
         self._chosen_letter_image.config(image=tk_letter_image)
         self._chosen_letter_image.image = tk_letter_image
@@ -55,9 +58,16 @@ class MainLettersHandler:
     def _get_random_color():
         return '#' + ''.join(['{:02x}'.format(random.randint(0, 255)) for _ in range(3)])
 
-    def add_main_letter(self, letter_location):
+    def add_main_letter(self, location):
+        data = self._view_model.data_model.different_letters.data
+        data[location] = self._get_image_patch(location)
+        self._view_model.data_model.different_letters.data = data
+        if location != UNKNOWN_KEY:
+            self.add_dup_letter(location, location)
+
+    def add_dup_letter(self, key, location):
         data = self._view_model.data_model.instances_locations_by_letters.data
-        data[letter_location] = {letter_location}
+        data[key].add(location)
         self._view_model.data_model.instances_locations_by_letters.data = data
 
     def handle_change_in_main_letters(self, new_main_letters):
