@@ -10,6 +10,8 @@ class DataModel:
     def __init__(self, image_paths: List[str]):
         self._images_paths = image_paths
         self._instances_locations_per_image = [dict() for _ in image_paths]
+        self._is_page_ready_map = [False for _ in image_paths]
+
         self.instances_locations_by_letters = Subject(dict())
 
         self.page = Subject(None)
@@ -24,6 +26,9 @@ class DataModel:
     @property
     def num_of_pages(self):
         return len(self._images_paths)
+
+    def set_page_state(self, value):
+        self._is_page_ready_map[self.current_page] = value
 
     def set_page(self, index: int):
         if self.current_page:

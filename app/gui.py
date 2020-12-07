@@ -51,6 +51,11 @@ class Gui:
 
         self._next_button = tk.Button(self._top_bar, text="Next", command=lambda: self._page_move_callback(back=False))
         self._next_button.pack(side=tk.LEFT)
+        self._is_page_ready = tk.BooleanVar()
+        self._is_page_ready_button = tk.Checkbutton(
+            self._top_bar, text="is ready", variable=self._is_page_ready, command=self._set_page_state
+        )
+        self._is_page_ready_button.pack(side=tk.LEFT)
 
         self._look_for_dup_button = tk.Button(self._top_bar, text="look for letter", command=self._on_look_for_letter)
         self._look_for_dup_button.pack(side=tk.LEFT)
@@ -110,6 +115,10 @@ class Gui:
         self._text_frame.tkraise()
 
         self._view_model.data_model.page.attach(self._update_image)
+
+    def _set_page_state(self):
+        is_ready = self._is_page_ready.get()
+        self._view_model.data_model.set_page_state(is_ready)
 
     def _update_image(self, _):
         if self._canvas_image:
