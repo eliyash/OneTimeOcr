@@ -11,6 +11,8 @@ from app.main_letters_handler import MainLettersHandler
 from app.tools import are_points_close, NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES, SpecialGroupsEnum, \
     UNKNOWN_IMAGE, EMPTY_IMAGE
 
+ZERO_TRANSLATION = (0, 0)
+
 
 class Gui:
     def __init__(
@@ -22,7 +24,7 @@ class Gui:
             save_letters_callback: Callable,
             get_images_by_locations_callback: Callable,
             page_move_callback: Callable,
-            translation: Tuple = (0, 0)
+            translation: Tuple = ZERO_TRANSLATION
     ):
         self._view_model = ViewModel(data_model)
         self._get_image_patch = get_image_patch
@@ -68,16 +70,12 @@ class Gui:
         width, height = self._view_model.data_model.pil_image.size
         self._canvas = tk.Canvas(self._text_frame, width=width, height=height)
         self._canvas.pack(side=tk.LEFT)
-        self._canvas_image = self._canvas.create_image(0, 0, image=self._tk_image, anchor=tk.NW)
+        self._canvas_image = None
+        self._update_image(None)
 
         self._canvas.bind("<Button-1>", self._on_mouse_press_left)
         self._canvas.bind("<Button-2>", self._on_mouse_press_wheel)
         self._canvas.bind("<Button-3>", self._on_mouse_press_right)
-
-        x, y = CENTER_POINT
-        self._canvas_center = self._canvas.create_rectangle(
-            x-2, y-2, x+2, y+2, tags=('center',), outline='purple', width=5
-        )
 
         self._duplicates = tk.Scale(self._top_bar, from_=1, to=200, orient=tk.HORIZONTAL)
         self._duplicates.set(NUM_OF_LETTERS)
@@ -111,11 +109,21 @@ class Gui:
 
         self._text_frame.tkraise()
 
-        # self._view_model.data_model.page.attach()
+        self._view_model.data_model.page.attach(self._update_image)
 
-    # def _update_image(self, _):
-    #     self._canvas_image.image =
-    #     self._canvas_image = self._canvas.create_image(0, 0, image=self._tk_image, anchor=tk.NW)
+    def _update_image(self, _):
+        if self._canvas_image:
+            self._canvas.delete(self._canvas_image)
+        self._translation = ZERO_TRANSLATION
+        tk_letter_image = ImageTk.PhotoImage(self._view_model.data_model.pil_image)
+        self._canvas.image = tk_letter_image
+        self._canvas_image = self._canvas.create_image(0, 0, image=tk_letter_image, anchor=tk.NW)
+
+        x, y = CENTER_POINT
+        self._canvas.create_rectangle(
+            x-2, y-2, x+2, y+2, tags=('center',), outline='purple', width=5
+        )
+        self._view_model.data_model.reset_data()
 
     def _get_image_from_key(self, image, key, scale=False):
         if type(key) == tuple:
