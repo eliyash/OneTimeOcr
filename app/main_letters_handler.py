@@ -46,7 +46,7 @@ class MainLettersHandler:
         self._current_main_letter_as_set.data = {letter} if letter else set()
 
     def _set_chosen_letter_image(self, letter):
-        if letter:
+        if letter in self._view_model.data_model.different_letters:
             cv_letter_image = self._view_model.data_model.different_letters.data[letter]
         else:
             cv_letter_image = EMPTY_IMAGE

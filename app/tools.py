@@ -36,3 +36,14 @@ def get_values_to_add_and_remove(old: Dict, new: Dict):
     old_keys = set(old.keys())
     new_keys = set(new.keys())
     return old_keys-new_keys, new_keys-old_keys
+
+
+_device = None
+
+
+def get_device():
+    global _device
+    if not _device:
+        import torch
+        _device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    return _device

@@ -8,6 +8,8 @@ import torch
 import torchvision.transforms as transforms
 from torch.utils import data
 
+SIZE_OF_HALF_PIXEL = (0.5, 0.5, 0.5)
+
 
 def cal_distance(x1, y1, x2, y2):
 	'''calculate the Euclidean distance'''
@@ -340,10 +342,17 @@ def extract_vertices(lines):
 
 
 class CustomDataset(data.Dataset):
-	def __init__(self, img_path, gt_path, scale=0.25, length=128):
+	def __init__(self, img_path, gt_path, scale=0.25, length=128, duplicate_pages=1):
 		super(CustomDataset, self).__init__()
-		self.img_files = [os.path.join(img_path, img_file) for img_file in sorted(os.listdir(img_path))]
-		self.gt_files  = [os.path.join(gt_path, gt_file) for gt_file in sorted(os.listdir(gt_path))]
+		gt_file_names = list(filter(lambda x: x != 'WIP', sorted(os.listdir(gt_path))))
+		gt_file_names = [file for file in gt_file_names]
+		self.gt_files = [os.path.join(gt_path, gt_file) for gt_file in gt_file_names for _ in range(duplicate_pages)]
+		self.img_files = [
+			os.path.join(img_path, img_file)
+			for img_file in os.listdir(img_path)
+			for _ in range(duplicate_pages)
+			if os.path.splitext(img_file)[0] in gt_file_names
+		]
 		self.scale = scale
 		self.length = length
 
@@ -359,9 +368,11 @@ class CustomDataset(data.Dataset):
 		img, vertices = adjust_height(img, vertices)
 		img, vertices = rotate_img(img, vertices)
 		img, vertices = crop_img(img, vertices, labels, self.length)
-		transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25), \
-                                        transforms.ToTensor(), \
-                                        transforms.Normalize(mean=(0.5,0.5,0.5),std=(0.5,0.5,0.5))])
+		transform = transforms.Compose([
+			transforms.ColorJitter(*SIZE_OF_HALF_PIXEL, 0.25),
+			transforms.ToTensor(),
+			transforms.Normalize(mean=SIZE_OF_HALF_PIXEL, std=SIZE_OF_HALF_PIXEL)
+		])
 		
 		score_map, geo_map, ignored_map = get_score_geo(img, vertices, labels, self.scale, self.length)
 		return transform(img), score_map, geo_map, ignored_map

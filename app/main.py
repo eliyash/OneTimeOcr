@@ -1,4 +1,6 @@
+import os
 import random
+import sys
 import time
 import json
 import cv2
@@ -11,9 +13,23 @@ from app.gui import Gui
 from app.tools import are_points_close, BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, MAX_LETTER_INCIDENTS, IMAGES_PATH, \
     LETTERS_PATH, UNKNOWN_KEY, UNKNOWN_IMAGE
 from letter_classifier.identify_letter import identify_letters
+from letter_classifier.train_identifier import run_train as train_identifier
+from letter_detector.train_detector import run_train as train_detector
 from letter_detector.find_centers import detect_letters
 import logging
-logger = logging.getLogger()
+
+
+def create_logger(logger_name=__file__):
+    new_logger = logging.getLogger(logger_name)
+    new_logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+    new_logger.addHandler(handler)
+    return new_logger
+
+
+logger = create_logger('main')
 
 
 class App:
@@ -26,13 +42,22 @@ class App:
             self._wrap_to_executor(self._network_detect),
             self._on_save_data,
             self._page_move,
-            self._get_image_patch
+            self._get_image_patch,
+            self._train_networks_last_dataset
         )
         self._data_model.page.data = 0
         self._data_model.different_letters.data = {UNKNOWN_KEY: UNKNOWN_IMAGE}
 
     def _wrap_to_executor(self, func):
-        return lambda *args, **kwargs: self._executor.submit(func, *args, **kwargs)
+        def func_with_exception(*args, **kwargs):
+            try:
+                func(*args, **kwargs)
+            except Exception as e:
+                logger.exception(e)
+
+        def func_submit(*args, **kwargs):
+            self._executor.submit(func_with_exception, *args, **kwargs)
+        return func_submit
 
     @staticmethod
     def _get_image_patch(image, key):
@@ -52,9 +77,19 @@ class App:
         else:
             return key
 
+    @classmethod
+    def _train_networks_last_dataset(cls):
+        last_data_set = sorted(os.listdir('../data/annotations'))[-1]
+        cls._train_networks(last_data_set)
+
+    @staticmethod
+    def _train_networks(data_set):
+        train_detector(data_set)
+        train_identifier(data_set)
+
     def _on_save_data(self):
-        time_str = time.strftime("dataset_%Y%m%d-%H%M%S")
-        new_dataset_path = LETTERS_PATH / time_str
+        data_set_name = time.strftime("dataset_%Y%m%d-%H%M%S")
+        new_dataset_path = LETTERS_PATH / data_set_name
 
         letters_folder = new_dataset_path / 'letters_map'
         pages_folder = new_dataset_path / 'pages'
@@ -76,6 +111,7 @@ class App:
         letters_folder.mkdir(parents=True)
         for key, image in self._data_model.different_letters.data.items():
             self.save_individual_images(image, key, letters_folder)
+        self._train_networks(data_set_name)
 
     @classmethod
     def _save_pages_letters(cls, page: np.ndarray, instances_locations: Dict, letters_folder: Path, is_ready: bool):
@@ -113,8 +149,14 @@ class App:
         self._set_duplicate_letters(UNKNOWN_KEY, found_locations)
         logger.info('detected letters showed, identifying letters')
         letter_to_locations_dist = identify_letters(self._data_model.image_path, found_locations)
-        letter_to_locations_dist[UNKNOWN_KEY] = set()
         logger.info('letters identified')
+        self._set_duplicate_letters(UNKNOWN_KEY, set())
+        different_letters = {
+            key: self._get_image_patch(self._data_model.pil_image, next(iter(val)))
+            for key, val in letter_to_locations_dist.items()
+        }
+        different_letters[UNKNOWN_KEY] = UNKNOWN_IMAGE
+        self._data_model.different_letters.data = different_letters
         self._data_model.instances_locations_by_letters.data = letter_to_locations_dist
         logger.info('all identify letters showed')
 

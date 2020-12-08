@@ -19,6 +19,7 @@ class Gui:
             on_save_data_callback: Callable,
             page_move_callback: Callable,
             get_image_patch: Callable,
+            train_networks_last_dataset: Callable,
             translation: Tuple = ZERO_TRANSLATION
     ):
         self._view_model = ViewModel(data_model)
@@ -27,6 +28,7 @@ class Gui:
         self._on_save_data_callback = on_save_data_callback
         self._page_move_callback = page_move_callback
         self._get_image_patch_callback = get_image_patch
+        self._train_networks_callback = train_networks_last_dataset
         self._translation = translation
 
         self._window = tk.Tk()
@@ -35,6 +37,9 @@ class Gui:
 
         self._main_letters_bar = tk.Frame(self._window)
         self._main_letters_bar.grid(row=1, column=0, sticky="nsew")
+
+        self._train_button = tk.Button(self._top_bar, text="train nets", command=self._train_networks_callback)
+        self._train_button.pack(side=tk.LEFT)
 
         self._save_button = tk.Button(self._top_bar, text="save lettres", command=self._on_save_data_callback)
         self._save_button.pack(side=tk.LEFT)
