@@ -4,9 +4,10 @@ from typing import Callable, Tuple
 
 from PIL import ImageTk
 
+from app.chosen_letter_image import ChosenLetterImageHandler
 from app.data_model import DataModel, ViewModel
 from app.letter_images_frame import MainLettersScreen, DuplicateLettersFrame
-from app.main_letters_handler import MainLettersHandler
+from app.letters_in_page_handler import LettersInPageHandler
 from app.special_values import NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES, ZERO_TRANSLATION, PAGE_SIZE, \
     UNKNOWN_KEY
 
@@ -83,9 +84,14 @@ class Gui:
         self._duplicates.set(NUM_OF_LETTERS)
         self._duplicates.pack(side=tk.LEFT)
 
-        self._main_letters_handler = MainLettersHandler(
-            self._view_model, self._run_gui_action, self._top_bar, self._canvas,
-            self._get_letter_patch, self._translator
+        self._chosen_letter_handler = ChosenLetterImageHandler(self._view_model, self._run_gui_action, self._top_bar)
+
+        self._main_letters_handler = LettersInPageHandler(
+            self._view_model, self._run_gui_action, self._canvas, self._get_letter_patch, self._translator
+        )
+
+        self._main_letters_screen = MainLettersScreen(
+            self._view_model, self._run_gui_action, self._get_letter_by_key, self._main_letters_bar
         )
 
         self._main_letters_screen = MainLettersScreen(
