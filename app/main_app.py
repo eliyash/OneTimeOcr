@@ -1,56 +1,42 @@
 import tkinter as tk
 from tkinter import ttk
-from typing import Callable, Tuple
+from typing import Callable, Tuple, List
 
 from PIL import ImageTk
 
+from app.buttons_and_texts import ButtonsAndTexts
 from app.chosen_letter_image import ChosenLetterImageHandler
 from app.data_model import DataModel, ViewModel
 from app.letter_images_frame import MainLettersScreen, DuplicateLettersFrame
 from app.letters_in_page_handler import LettersInPageHandler
+from app.observers import Subject
 from app.special_values import NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES, ZERO_TRANSLATION, PAGE_SIZE, \
     UNKNOWN_KEY
 
 
-class Gui:
+class MainApp:
     def __init__(
             self,
             data_model: DataModel,
             on_look_for_letter_callback: Callable,
-            network_detect_callback: Callable,
-            on_save_data_callback: Callable,
-            page_move_callback: Callable,
             get_image_patch: Callable,
-            train_networks_last_dataset: Callable,
+            list_of_buttons_and_indicators: List[Tuple[bool, Tuple]],
             translation: Tuple = ZERO_TRANSLATION
     ):
         self._view_model = ViewModel(data_model)
+
         self._on_look_for_letter_callback = on_look_for_letter_callback
-        self._network_detect_callback = network_detect_callback
-        self._on_save_data_callback = on_save_data_callback
-        self._page_move_callback = page_move_callback
         self._get_image_patch_callback = get_image_patch
-        self._train_networks_callback = train_networks_last_dataset
         self._translation = translation
 
         self._window = tk.Tk()
         self._top_bar = tk.Frame(self._window)
         self._top_bar.grid(row=0, column=0, sticky="nsew")
 
+        self._buttons_and_indicators = ButtonsAndTexts(self._top_bar, list_of_buttons_and_indicators)
         self._main_letters_bar = tk.Frame(self._window)
         self._main_letters_bar.grid(row=1, column=0, sticky="nsew")
 
-        self._train_button = tk.Button(self._top_bar, text="train nets", command=self._train_networks_callback)
-        self._train_button.pack(side=tk.LEFT)
-
-        self._save_button = tk.Button(self._top_bar, text="save lettres", command=self._on_save_data_callback)
-        self._save_button.pack(side=tk.LEFT)
-
-        self._prev_button = tk.Button(self._top_bar, text="Prev", command=lambda: self._page_move_callback(back=True))
-        self._prev_button.pack(side=tk.LEFT)
-
-        self._next_button = tk.Button(self._top_bar, text="Next", command=lambda: self._page_move_callback(back=False))
-        self._next_button.pack(side=tk.LEFT)
         self._is_page_ready = tk.BooleanVar()
         self._is_page_ready_button = tk.Checkbutton(
             self._top_bar, text="is ready", variable=self._is_page_ready, command=self._set_page_state
@@ -59,9 +45,6 @@ class Gui:
 
         self._look_for_dup_button = tk.Button(self._top_bar, text="look for letter", command=self._on_look_for_letter)
         self._look_for_dup_button.pack(side=tk.LEFT)
-
-        self._call_net_button = tk.Button(self._top_bar, text="call net", command=self._network_detect_callback)
-        self._call_net_button.pack(side=tk.LEFT)
 
         self._text_frame = tk.Frame(self._window)
         self._text_frame.grid(row=2, column=0, sticky="nsew")

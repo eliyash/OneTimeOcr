@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Tuple, Dict, Union
 from concurrent.futures.thread import ThreadPoolExecutor
 from app.data_model import DataModel
-from app.gui import Gui
+from app.main_app import MainApp
 from app.special_values import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, MAX_LETTER_INCIDENTS, UNKNOWN_KEY
 from app.special_images import UNKNOWN_IMAGE
 from app.paths import IMAGES_PATH, LETTERS_PATH, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH
@@ -38,14 +38,22 @@ class App:
     def __init__(self):
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._data_model = DataModel(IMAGES_PATH)
-        self._gui = Gui(
+
+        list_of_buttons_and_indicators = [
+            (True, ('Detect', self._network_detect)),
+            (True, ('Identify', self._network_detect)),
+            (True, ('Save and train', self._on_save_data)),
+            (True, ('Train', self._train_networks_last_dataset)),
+            (True, ('Prev', lambda: self._page_move(back=True))),
+            (False, ('Page', self._data_model.page)),
+            (True, ('Next', self._page_move)),
+        ]
+
+        self._gui = MainApp(
             self._data_model,
-            self._wrap_to_executor(self._look_for_duplicates),
-            self._wrap_to_executor(self._network_detect),
-            self._wrap_to_executor(self._on_save_data),
-            self._page_move,
+            self._look_for_duplicates,
             self._get_image_patch,
-            self._wrap_to_executor(self._train_networks_last_dataset)
+            list_of_buttons_and_indicators
         )
         self._data_model.page.data = 0
         self._data_model.different_letters.data = {UNKNOWN_KEY: UNKNOWN_IMAGE}
