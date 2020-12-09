@@ -13,40 +13,45 @@ class LettersImagesFrame:
         self._get_image_patch = get_image_patch
         self._frame = frame
 
-        self._currentFrame = None
-        self._create_new_frame()
         self._map_keys_by_widgets = {}
-
-    def _remove_images(self):
-        self._currentFrame.destroy()
-        self._create_new_frame()
-
-    def _create_new_frame(self):
+        self._map_widgets_by_keys = {}
         self._currentFrame = tk.Frame(self._frame)
         self._currentFrame.grid(row=0, column=0)
+
+    @property
+    def _get_current_location_duplicates(self):
+        return set(self._map_keys_by_widgets.values())
 
     def _set_actions(self, label, location):
         pass
 
-    def show_images(self, current_location_duplicates):
-        self._map_keys_by_widgets = {}
-        self._remove_images()
-        for i, location in enumerate(current_location_duplicates):
-            row = i // self._letters_in_a_row
-            column = i % self._letters_in_a_row
-            cv_letter_image = self._get_image_patch(location)
+    def update_images(self, new_location_duplicates: set):
+        current_location_duplicates = self._get_current_location_duplicates
+        new_location_duplicates = set(new_location_duplicates)
+        for key_to_add in new_location_duplicates - current_location_duplicates:
+            cv_letter_image = self._get_image_patch(key_to_add)
             tk_letter_image = ImageTk.PhotoImage(Image.fromarray(cv_letter_image))
             label = tk.Label(self._currentFrame, image=tk_letter_image)
             label.image = tk_letter_image
-            self._set_actions(label, location)
+            self._set_actions(label, key_to_add)
+            self._map_keys_by_widgets[label] = key_to_add
+            self._map_widgets_by_keys[key_to_add] = label
+
+        for key_to_remove in current_location_duplicates - new_location_duplicates:
+            label = self._map_widgets_by_keys.pop(key_to_remove)
+            self._map_keys_by_widgets.pop(label)
+            label.destroy()
+
+        for i, label in enumerate(self._map_widgets_by_keys.values()):
+            row = i // self._letters_in_a_row
+            column = i % self._letters_in_a_row
             label.grid(row=row, column=column)
-            self._map_keys_by_widgets[label] = location
 
 
 class DuplicateLettersFrame(LettersImagesFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._view_model.current_location_duplicates.attach(self._run_gui_action(self.show_images))
+        self._view_model.current_location_duplicates.attach(self._run_gui_action(self.update_images))
 
     def _remove_letter(self, location):
         data = self._view_model.data_model.instances_locations_by_letters.data
@@ -83,7 +88,7 @@ class MainLettersScreen(LettersImagesFrame):
         self._letters_in_a_row = 40
 
     def show_images(self, different_letters):
-        super().show_images(list(different_letters.keys()))
+        super().update_images(set(different_letters.keys()))
         self._view_model.map_keys_by_widgets = self._map_keys_by_widgets
 
     def _remove_letter(self, location):
