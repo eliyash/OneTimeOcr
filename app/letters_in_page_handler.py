@@ -49,6 +49,6 @@ class LettersInPageHandler:
             self._letters_markers_managers[letter_to_add] = marker_drawer
 
     def set_marker_managers_for_duplicates(self, locations_dict):
-        self.handle_change_in_main_letters(set(locations_dict.keys()))
+        self.handle_change_in_main_letters(locations_dict)
         for main_letter in locations_dict.keys():
             self._letters_markers_managers[main_letter].update_letters(locations_dict[main_letter])
