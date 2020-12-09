@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import Tuple, Dict, Union
 from concurrent.futures.thread import ThreadPoolExecutor
 from app.data_model import DataModel
-from app.main_app import MainApp
+from app.main_window import MainWindow
 from app.special_values import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, MAX_LETTER_INCIDENTS, UNKNOWN_KEY
 from app.special_images import UNKNOWN_IMAGE
 from app.paths import IMAGES_PATH, LETTERS_PATH, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH
-from app.tools import are_points_close, is_different_values_preset
+from app.tools import are_points_close, union_notifier_and_dict_values, union_notifier_and_dict_sets
 from letter_classifier.identify_letter import identify_letters
 from letter_classifier.train_identifier import run_train as train_identifier
 from letter_detector.train_detector import run_train as train_detector
@@ -40,16 +40,17 @@ class App:
         self._data_model = DataModel(IMAGES_PATH)
 
         list_of_buttons_and_indicators = [
-            (True, ('Detect', self._network_detect)),
-            (True, ('Identify', self._network_detect)),
-            (True, ('Save and train', self._on_save_data)),
-            (True, ('Train', self._train_networks_last_dataset)),
+            (True, ('Detect', self._wrap_to_executor(self._detect_letters))),
+            (True, ('Identify', self._wrap_to_executor(self._identify_letters))),
+            (True, ('Both', self._wrap_to_executor(self._run_both_nets))),
+            (True, ('Save and train', self._wrap_to_executor(self._on_save_data))),
+            (True, ('Train', self._wrap_to_executor(self._train_networks_last_dataset))),
             (True, ('Prev', lambda: self._page_move(back=True))),
             (False, ('Page', self._data_model.page)),
             (True, ('Next', self._page_move)),
         ]
 
-        self._gui = MainApp(
+        self._gui = MainWindow(
             self._data_model,
             self._look_for_duplicates,
             self._get_image_patch,
@@ -152,18 +153,29 @@ class App:
         file_name = letters_folder / '{}.jpg'.format(cls._key_to_str(letter_location))
         cv2.imwrite(str(file_name), image_as_uint)
 
-    def _network_detect(self):
-        newest_detector = max(DETECTOR_NETS_PATH.iterdir(), key=lambda x: x.name)
-        newest_identifier = max(IDENTIFIER_NETS_PATH.iterdir(), key=lambda x: x.name)
-        logger.info('detecting letters')
-        found_locations = detect_letters(self._data_model.image_path, newest_detector)
+    def _run_both_nets(self):
+        self._detect_letters()
+        self._identify_letters()
+
+    def _detect_letters(self):
+        detector_path = max(DETECTOR_NETS_PATH.iterdir(), key=lambda x: x.name)
+        logger.info('detecting letters...')
+        found_locations = detect_letters(self._data_model.image_path, detector_path)
         logger.info('letters detected')
-        locations_dict, letters_map = identify_letters(self._data_model.image_path, found_locations, newest_identifier)
+        new_values_dict = {UNKNOWN_KEY: found_locations}
+        union_notifier_and_dict_sets(self._data_model.instances_locations_by_letters, new_values_dict)
+        logger.info('detection done')
+
+    def _identify_letters(self):
+        identifier_path = max(IDENTIFIER_NETS_PATH.iterdir(), key=lambda x: x.name)
+        logger.info('identifying letters...')
+        unknown_locations = self._data_model.instances_locations_by_letters.data[UNKNOWN_KEY]
+        locations_dict, letters_map = identify_letters(self._data_model.image_path, unknown_locations, identifier_path)
         logger.info('letters identified')
-        if is_different_values_preset(self._data_model.different_letters.data, letters_map):
-            self._data_model.different_letters.data = letters_map
-        self._data_model.instances_locations_by_letters.data = locations_dict
-        logger.info('all identify letters showed')
+        union_notifier_and_dict_values(self._data_model.different_letters, letters_map)
+        self._set_duplicate_letters(UNKNOWN_KEY, set())
+        union_notifier_and_dict_sets(self._data_model.instances_locations_by_letters, locations_dict)
+        logger.info('identification done')
 
     def _look_for_duplicates(self, key, letter_center: Tuple, num_of_letters: int):
         images_of_duplicated_letters = self._get_image_patch(self._data_model.pil_image, letter_center)

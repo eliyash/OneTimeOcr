@@ -9,12 +9,11 @@ from app.chosen_letter_image import ChosenLetterImageHandler
 from app.data_model import DataModel, ViewModel
 from app.letter_images_frame import MainLettersScreen, DuplicateLettersFrame
 from app.letters_in_page_handler import LettersInPageHandler
-from app.observers import Subject
 from app.special_values import NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES, ZERO_TRANSLATION, PAGE_SIZE, \
     UNKNOWN_KEY
 
 
-class MainApp:
+class MainWindow:
     def __init__(
             self,
             data_model: DataModel,
@@ -43,7 +42,7 @@ class MainApp:
         )
         self._is_page_ready_button.pack(side=tk.LEFT)
 
-        self._look_for_dup_button = tk.Button(self._top_bar, text="look for letter", command=self._on_look_for_letter)
+        self._look_for_dup_button = tk.Button(self._top_bar, text="Correlate Letter", command=self._on_look_for_letter)
         self._look_for_dup_button.pack(side=tk.LEFT)
 
         self._text_frame = tk.Frame(self._window)

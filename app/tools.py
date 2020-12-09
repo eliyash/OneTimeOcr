@@ -1,8 +1,9 @@
 from pathlib import Path
-from typing import Dict, Tuple, Set
+from typing import Dict, Tuple, Set, Callable
 
 import numpy as np
 
+from app.observers import Subject
 from app.special_values import UNKNOWN_KEY, MAX_DIST, LAST_NET
 
 
@@ -53,3 +54,27 @@ def get_last_epoch_net(network_path):
         key=lambda path: int(path.name.split('_')[-1].split('.')[0])
     )
     return model_path
+
+
+def union_dicts_dest_src(dict_dest: Dict, dict_src: Dict, combiner: Callable):
+    for key, set_value in dict_src.items():
+        dict_dest[key] = combiner(dict_dest[key] if key in dict_dest else None, dict_src[key])
+
+
+def union_notifier_and_dict(notifier: Subject, dict_src: Dict, cell_combiner: Callable):
+    dict_dest = notifier.data
+    union_dicts_dest_src(dict_dest, dict_src, cell_combiner)
+    notifier.data = dict_dest
+
+
+def union_notifier_and_dict_sets(notifier: Subject, dict_src: Dict):
+    def union_sets(dest_set, src_set):
+        dest_set = set() if dest_set is None else dest_set
+        return dest_set.union(src_set)
+    union_notifier_and_dict(notifier, dict_src, union_sets)
+
+
+def union_notifier_and_dict_values(notifier: Subject, dict_src: Dict):
+    def union_values(dest_val, src_val):
+        return src_val if dest_val is None else dest_val
+    union_notifier_and_dict(notifier, dict_src, union_values)
