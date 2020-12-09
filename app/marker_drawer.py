@@ -1,7 +1,5 @@
-from typing import Set, Callable
-
-from app.observers import Subject
-from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
+from typing import Set
+from app.special_values import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
 
 
 class MarkerDrawer:

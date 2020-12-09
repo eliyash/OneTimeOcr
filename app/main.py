@@ -10,9 +10,10 @@ from typing import Tuple, Dict, Union
 from concurrent.futures.thread import ThreadPoolExecutor
 from app.data_model import DataModel
 from app.gui import Gui
-from app.tools import are_points_close, BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, MAX_LETTER_INCIDENTS, IMAGES_PATH, \
-    LETTERS_PATH, UNKNOWN_KEY, UNKNOWN_IMAGE, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH, is_different_values_preset, \
-    get_values_to_add_and_remove
+from app.special_values import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, MAX_LETTER_INCIDENTS, UNKNOWN_KEY
+from app.special_images import UNKNOWN_IMAGE
+from app.paths import IMAGES_PATH, LETTERS_PATH, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH
+from app.tools import are_points_close, is_different_values_preset
 from letter_classifier.identify_letter import identify_letters
 from letter_classifier.train_identifier import run_train as train_identifier
 from letter_detector.train_detector import run_train as train_detector

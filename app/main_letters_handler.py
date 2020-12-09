@@ -4,8 +4,9 @@ from typing import Dict, Tuple, Callable
 from PIL import ImageTk, Image
 
 from app.data_model import ViewModel
-from app.marker_manager import SimpleMarkerDrawer
-from app.tools import EMPTY_IMAGE, UNKNOWN_KEY
+from app.marker_drawer import SimpleMarkerDrawer
+from app.special_values import UNKNOWN_KEY
+from app.special_images import EMPTY_IMAGE
 
 
 class MainLettersHandler:

@@ -4,6 +4,7 @@ from PIL import Image, ImageDraw
 import os
 import numpy as np
 
+from app.tools import get_device
 from letter_detector.dataset import get_rotate_mat
 from letter_detector.model import EAST
 
@@ -196,7 +197,7 @@ def main():
 	# model_path = './pths/east_vgg16.pth'
 	model_path = './20201118-151324/pths/model_epoch_137.pth'
 	res_img = './output/{}.bmp'.format(os.path.basename(img_path)[:-4])
-	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+	device = get_device()
 	model = EAST().to(device)
 	model.load_state_dict(torch.load(model_path))
 	model.eval()

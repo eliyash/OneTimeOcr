@@ -5,9 +5,10 @@ from typing import Callable, Tuple
 from PIL import ImageTk
 
 from app.data_model import DataModel, ViewModel
-from app.letter_images import MainLettersScreen, DuplicateLettersFrame
+from app.letter_images_frame import MainLettersScreen, DuplicateLettersFrame
 from app.main_letters_handler import MainLettersHandler
-from app.tools import NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES, ZERO_TRANSLATION, PAGE_SIZE, UNKNOWN_KEY
+from app.special_values import NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES, ZERO_TRANSLATION, PAGE_SIZE, \
+    UNKNOWN_KEY
 
 
 class Gui:
@@ -163,6 +164,7 @@ class Gui:
         location = self._translator((event.x, event.y))
         self._main_letters_handler.add_main_letter(location)
 
+    # TODO: support removing from screen?
     # def _on_mouse_press_delete(self, event):
         # instances_locations_by_letters = self._view_model.data_model.instances_locations_by_letters.data
         # for letter_location in list(instances_locations_by_letters.keys()):

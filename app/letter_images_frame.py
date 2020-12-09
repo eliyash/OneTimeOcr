@@ -2,7 +2,7 @@ import tkinter as tk
 from typing import Callable
 from PIL import ImageTk, Image
 from app.data_model import ViewModel
-from app.tools import UNKNOWN_KEY
+from app.special_values import UNKNOWN_KEY
 
 
 class LettersImagesFrame:

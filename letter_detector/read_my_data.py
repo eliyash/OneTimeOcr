@@ -3,7 +3,7 @@ import json
 import cv2
 import numpy as np
 
-from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
+from app.special_values import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
 
 NUM_H_W = (10, 10)
 IMAGE_TO_SHOW = 10

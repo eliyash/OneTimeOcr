@@ -3,7 +3,8 @@ from pathlib import Path
 from typing import Dict, Optional
 from PIL import Image
 from app.observers import Subject
-from app.tools import UNKNOWN_KEY, get_values_to_add_and_remove
+from app.special_values import UNKNOWN_KEY
+from app.tools import get_values_to_add_and_remove
 
 
 class DataModel:

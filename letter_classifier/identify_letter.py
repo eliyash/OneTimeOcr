@@ -9,7 +9,8 @@ from PIL import Image
 from torch.autograd import Variable
 from torchvision.transforms import transforms
 from letter_classifier.mnist_like_net import Net
-from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, str_to_location, file_name_to_location, get_last_epoch_net
+from app.special_values import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
+from app.tools import str_to_location, file_name_to_location, get_last_epoch_net, get_device
 
 
 def image_loader(loader, image):
@@ -22,7 +23,7 @@ def image_loader(loader, image):
 def identify_letters(image_path: str, locations, network_path: Path):
     model_path = get_last_epoch_net(network_path)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = get_device()
 
     image = Image.open(image_path)
     softmax = torch.nn.Softmax(dim=1)
