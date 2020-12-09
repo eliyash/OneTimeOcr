@@ -1,12 +1,16 @@
+from pathlib import Path
+
 import torch
 import numpy as np
 from PIL import Image
+from app.tools import get_device, get_last_epoch_net
 from letter_detector.detect import detect
 from letter_detector.model import EAST
 
 
-def detect_letters(img_path, model_path="../networks/letter_detector/model_epoch_137.pth"):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+def detect_letters(img_path, network_path):
+    model_path = get_last_epoch_net(network_path)
+    device = get_device()
     model = EAST().to(device)
     model.load_state_dict(torch.load(model_path))
     model.eval()
@@ -23,7 +27,8 @@ def detect_letters(img_path, model_path="../networks/letter_detector/model_epoch
 
 def main():
     image_path = r"..\..\test_pages\test_gez good - Copy.jpg"
-    detect_letters(image_path)
+    train_path = Path("../networks/letter_detector")
+    detect_letters(image_path, train_path)
 
 
 if __name__ == '__main__':

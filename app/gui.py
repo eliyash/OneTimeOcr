@@ -149,7 +149,7 @@ class Gui:
         instances_locations_by_letters = self._view_model.data_model.instances_locations_by_letters.data
         if letter_key in instances_locations_by_letters and instances_locations_by_letters[letter_key]:
             letter = next(iter((instances_locations_by_letters[letter_key])))
-            self._on_look_for_letter_callback(letter, self._duplicates.get())
+            self._on_look_for_letter_callback(letter_key, letter, self._duplicates.get())
 
     def _on_mouse_press_left(self, event):
         location = self._translator((event.x, event.y))

@@ -1,4 +1,3 @@
-# from shapely.geometry import Polygon
 import numpy as np
 import cv2
 from PIL import Image
@@ -7,6 +6,7 @@ import os
 import torch
 import torchvision.transforms as transforms
 from torch.utils import data
+from letter_detector.read_my_data import create_data
 
 SIZE_OF_HALF_PIXEL = (0.5, 0.5, 0.5)
 
@@ -324,29 +324,12 @@ def get_score_geo(img, vertices, labels, scale, length):
 	return torch.Tensor(score_map).permute(2,0,1), torch.Tensor(geo_map).permute(2,0,1), torch.Tensor(ignored_map).permute(2,0,1)
 
 
-def extract_vertices(lines):
-	'''extract vertices info from txt lines
-	Input:
-		lines   : list of string info
-	Output:
-		vertices: vertices of text regions <numpy.ndarray, (n,8)>
-		labels  : 1->valid, 0->ignore, <numpy.ndarray, (n,)>
-	'''
-	labels = []
-	vertices = []
-	for line in lines:
-		vertices.append(list(map(int,line.rstrip('\n').lstrip('\ufeff').split(',')[:8])))
-		label = 0 if '###' in line else 1
-		labels.append(label)
-	return np.array(vertices), np.array(labels)
-
-
 class CustomDataset(data.Dataset):
 	def __init__(self, img_path, gt_path, scale=0.25, length=128, duplicate_pages=1):
 		super(CustomDataset, self).__init__()
 		gt_file_names = list(filter(lambda x: x != 'WIP', sorted(os.listdir(gt_path))))
 		gt_file_names = [file for file in gt_file_names]
-		self.gt_files = [os.path.join(gt_path, gt_file) for gt_file in gt_file_names for _ in range(duplicate_pages)]
+		self.gt_files = [os.path.join(gt_path, gt_file, 'instances_locations_by_index.json') for gt_file in gt_file_names for _ in range(duplicate_pages)]
 		self.img_files = [
 			os.path.join(img_path, img_file)
 			for img_file in os.listdir(img_path)
@@ -360,10 +343,7 @@ class CustomDataset(data.Dataset):
 		return len(self.img_files)
 
 	def __getitem__(self, index):
-		with open(self.gt_files[index], 'r') as f:
-			lines = f.readlines()
-		vertices, labels = extract_vertices(lines)
-		
+		vertices, labels = create_data(self.gt_files[index])
 		img = Image.open(self.img_files[index])
 		img, vertices = adjust_height(img, vertices)
 		img, vertices = rotate_img(img, vertices)

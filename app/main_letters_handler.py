@@ -4,9 +4,8 @@ from typing import Dict, Tuple, Callable
 from PIL import ImageTk, Image
 
 from app.data_model import ViewModel
-from app.marker_manager import MarkerManager, SimpleMarkerDrawer
-from app.observers import Subject
-from app.tools import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, EMPTY_IMAGE, UNKNOWN_KEY
+from app.marker_manager import SimpleMarkerDrawer
+from app.tools import EMPTY_IMAGE, UNKNOWN_KEY
 
 
 class MainLettersHandler:
@@ -22,7 +21,6 @@ class MainLettersHandler:
         # locals
         self._old_main_letters = set()
         self._letters_markers_managers = dict()  # type: Dict[Tuple, SimpleMarkerDrawer]
-        self._current_main_letter_as_set = Subject(set())
 
         self._top_bar = top_bar
         self._canvas = canvas
@@ -30,23 +28,14 @@ class MainLettersHandler:
         self._chosen_letter_image = tk.Label(self._top_bar)
         self._chosen_letter_image.pack(side=tk.LEFT)
 
-        self._chosen_letter_markers_manager = MarkerManager(
-            self._current_main_letter_as_set, run_gui_action,
-            self._canvas, 'green', BOX_WIDTH_MARGIN + 4, BOX_HEIGHT_MARGIN + 6, translator=self._translator
-        )
-
         self._set_chosen_letter_image(None)
         self._view_model.data_model.instances_locations_by_letters.attach(
             run_gui_action(self.set_marker_managers_for_duplicates)
         )
-        self._view_model.current_chosen_letter.attach(self._on_current_main_letter)
         self._view_model.current_chosen_letter.attach(run_gui_action(self._set_chosen_letter_image))
 
-    def _on_current_main_letter(self, letter):
-        self._current_main_letter_as_set.data = {letter} if letter else set()
-
     def _set_chosen_letter_image(self, letter):
-        if letter in self._view_model.data_model.different_letters:
+        if letter in self._view_model.data_model.different_letters.data:
             cv_letter_image = self._view_model.data_model.different_letters.data[letter]
         else:
             cv_letter_image = EMPTY_IMAGE

@@ -79,11 +79,11 @@ class DuplicateLettersFrame(LettersImagesFrame):
 class MainLettersScreen(LettersImagesFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._view_model.data_model.instances_locations_by_letters.attach(self._run_gui_action(self.show_images))
+        self._view_model.data_model.different_letters.attach(self._run_gui_action(self.show_images))
         self._letters_in_a_row = 40
 
-    def show_images(self, instances_locations_by_letters):
-        super().show_images(list(instances_locations_by_letters.keys()))
+    def show_images(self, different_letters):
+        super().show_images(list(different_letters.keys()))
         self._view_model.map_keys_by_widgets = self._map_keys_by_widgets
 
     def _remove_letter(self, location):

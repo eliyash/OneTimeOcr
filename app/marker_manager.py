@@ -43,18 +43,6 @@ class MarkerDrawer:
         self._local_instances_locations = updated_letters_locations
 
 
-class MarkerManager(MarkerDrawer):
-    def __init__(self, instances_locations_observer: Subject, run_gui_action: Callable, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._update_letters_gui_func = run_gui_action(self._update_letters)
-        self._instances_locations = instances_locations_observer
-        self._instances_locations.attach(self._update_letters_gui_func)
-
-    def __del__(self):
-        self._instances_locations.detach(self._update_letters_gui_func)
-        super().__del__()
-
-
 class SimpleMarkerDrawer(MarkerDrawer):
     def update_letters(self, updated_letters: Set):
         self._update_letters(updated_letters)

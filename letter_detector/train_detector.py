@@ -23,7 +23,7 @@ def train(data_path: Path, data_set: str, train_portion: float, networks_path: P
     data_set = CustomDataset(str(img_path), str(gt_path), duplicate_pages=batch_size)
 
     size = len(data_set)
-    if size < 2:
+    if size < 2 * batch_size:
         train_set, test_set = data_set, data_set
     else:
         train_size = int(size * train_portion)
@@ -81,7 +81,7 @@ def train(data_path: Path, data_set: str, train_portion: float, networks_path: P
             test_loss / int(file_num / batch_size), epoch_loss / int(file_num / batch_size), time.time() - epoch_time)
         )
         print(time.asctime(time.localtime(time.time())))
-        if not best_training_loss or test_loss < (best_training_loss - minimal_improvement_for_save):
+        if best_training_loss is None or test_loss < (best_training_loss - minimal_improvement_for_save):
             best_training_loss = test_loss
             new_net_name = 'model_epoch_{}.pth'.format(epoch + 1)
             state_dict = model.module.state_dict() if data_parallel else model.state_dict()
@@ -102,12 +102,12 @@ def calc_loss_on_net(criterion, device, gt_geo, gt_score, ignored_map, img, mode
 
 def run_train(data_set):
     torch.manual_seed(1)
-    train_portion = 0.7
+    train_portion = 0.5
     start_net = BASIC_EAST_MODEL
     batch_size = 4
     lr = 1e-3
     num_workers = 4
-    number_of_epochs = 100
+    number_of_epochs = 20
     minimal_improve_to_save = 0
     network_path = Path('../networks') / 'detector' / time.strftime("train_%Y%m%d-%H%M%S")
     data_path = Path(r'../../data')
@@ -119,7 +119,7 @@ def run_train(data_set):
 
 
 def main():
-    run_train('dataset_20201207-203908')
+    run_train('dataset_20201209-145735')
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import json
+import shutil
 import time
 from pathlib import Path
 
@@ -64,10 +65,12 @@ def run_train(data_set):
     device = get_device()
 
     train_portion = 0.7
-    number_of_epochs = 100
+    number_of_epochs = 20
     batch = 8
     network_path = Path('../networks') / 'identifier' / time.strftime("train_%Y%m%d-%H%M%S")
-    data_path = Path(r'../../data')
+    network_path.mkdir(parents=True)
+
+    data_path = Path(r'../../data/annotations')
 
     transform = transforms.Compose([
         transforms.Resize((60, 60)),
@@ -77,6 +80,12 @@ def run_train(data_set):
     ])
 
     image_net_data = ImageFolder(data_path / data_set / 'letter_images', transform=transform)
+
+    number_of_classes = len(image_net_data.classes)
+    with open(str(network_path / 'classes_map.json'), 'w') as state_file:
+        json.dump({ind: class_name for ind, class_name in enumerate(image_net_data.classes)}, state_file)
+
+    shutil.copytree(str(data_path / data_set / 'letters_map'), str(network_path / 'letters_map'))
     size = len(image_net_data)
     train_size = int(size * train_portion)
     train_set_data, test_set_data = torch.utils.data.random_split(image_net_data, [train_size, size-train_size])
@@ -84,7 +93,6 @@ def run_train(data_set):
     train_loader = torch.utils.data.DataLoader(train_set_data, batch_size=batch, shuffle=True, num_workers=1)
     test_loader = torch.utils.data.DataLoader(test_set_data, batch_size=batch, shuffle=True, num_workers=1)
 
-    number_of_classes = max(len(train_set_data.classes), len(train_set_data.classes))
     model = Net(number_of_classes).to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
@@ -94,14 +102,14 @@ def run_train(data_set):
         test_loss = test(model, device, test_loader, epoch, network_path)
         if best_test_loss is None or test_loss < best_test_loss:
             best_test_loss = test_loss
-            torch.save(model, str(network_path / 'epoch_{}.pt'.format(epoch)))
+            torch.save(model, str(network_path / 'epoch_{}.pth'.format(epoch)))
             with open(str(network_path / 'state.json'), 'w') as state_file:
                 json.dump({'loss': best_test_loss}, state_file)
-    torch.save(model, str(network_path / 'last_net.pt'))
+    torch.save(model, str(network_path / 'last_net.pth'))
 
 
 def main():
-    run_train('dataset_20201207-203908')
+    run_train('dataset_20201209-145735')
 
 
 if __name__ == '__main__':

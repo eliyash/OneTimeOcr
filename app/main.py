@@ -11,7 +11,8 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from app.data_model import DataModel
 from app.gui import Gui
 from app.tools import are_points_close, BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, MAX_LETTER_INCIDENTS, IMAGES_PATH, \
-    LETTERS_PATH, UNKNOWN_KEY, UNKNOWN_IMAGE
+    LETTERS_PATH, UNKNOWN_KEY, UNKNOWN_IMAGE, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH, is_different_values_preset, \
+    get_values_to_add_and_remove
 from letter_classifier.identify_letter import identify_letters
 from letter_classifier.train_identifier import run_train as train_identifier
 from letter_detector.train_detector import run_train as train_detector
@@ -40,10 +41,10 @@ class App:
             self._data_model,
             self._wrap_to_executor(self._look_for_duplicates),
             self._wrap_to_executor(self._network_detect),
-            self._on_save_data,
+            self._wrap_to_executor(self._on_save_data),
             self._page_move,
             self._get_image_patch,
-            self._train_networks_last_dataset
+            self._wrap_to_executor(self._train_networks_last_dataset)
         )
         self._data_model.page.data = 0
         self._data_model.different_letters.data = {UNKNOWN_KEY: UNKNOWN_IMAGE}
@@ -143,24 +144,19 @@ class App:
         cv2.imwrite(str(file_name), image_as_uint)
 
     def _network_detect(self):
+        newest_detector = max(DETECTOR_NETS_PATH.iterdir(), key=lambda x: x.name)
+        newest_identifier = max(IDENTIFIER_NETS_PATH.iterdir(), key=lambda x: x.name)
         logger.info('detecting letters')
-        found_locations = detect_letters(self._data_model.image_path)
+        found_locations = detect_letters(self._data_model.image_path, newest_detector)
         logger.info('letters detected')
-        self._set_duplicate_letters(UNKNOWN_KEY, found_locations)
-        logger.info('detected letters showed, identifying letters')
-        letter_to_locations_dist = identify_letters(self._data_model.image_path, found_locations)
+        locations_dict, letters_map = identify_letters(self._data_model.image_path, found_locations, newest_identifier)
         logger.info('letters identified')
-        self._set_duplicate_letters(UNKNOWN_KEY, set())
-        different_letters = {
-            key: self._get_image_patch(self._data_model.pil_image, next(iter(val)))
-            for key, val in letter_to_locations_dist.items()
-        }
-        different_letters[UNKNOWN_KEY] = UNKNOWN_IMAGE
-        self._data_model.different_letters.data = different_letters
-        self._data_model.instances_locations_by_letters.data = letter_to_locations_dist
+        if is_different_values_preset(self._data_model.different_letters.data, letters_map):
+            self._data_model.different_letters.data = letters_map
+        self._data_model.instances_locations_by_letters.data = locations_dict
         logger.info('all identify letters showed')
 
-    def _look_for_duplicates(self, letter_center: Tuple, num_of_letters: int):
+    def _look_for_duplicates(self, key, letter_center: Tuple, num_of_letters: int):
         images_of_duplicated_letters = self._get_image_patch(self._data_model.pil_image, letter_center)
         nw_locations = self._basic_matching_new(np.array(self._data_model.pil_image), images_of_duplicated_letters)
         nw_locations.sort(key=lambda v: v[1], reverse=True)
@@ -174,7 +170,7 @@ class App:
         to_add = to_add[:num_of_letters]
         found_locations = {(x_center + BOX_WIDTH_MARGIN, y_center + BOX_HEIGHT_MARGIN)
                            for (y_center, x_center), val in to_add}
-        self._set_duplicate_letters(letter_center, found_locations)
+        self._set_duplicate_letters(key, found_locations)
 
     def _set_duplicate_letters(self, letter, locations):
         data = self._data_model.instances_locations_by_letters.data

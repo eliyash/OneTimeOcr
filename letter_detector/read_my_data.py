@@ -36,24 +36,23 @@ def name_to_location(name):
 DIRECTIONS = [(-1, -1), (+1, -1), (+1, +1), (-1, +1)]
 
 
-def center_to_all_points(x, y):
+def center_to_all_points(point):
+    x, y = point
     all_points_tuples = [(x + x_d*BOX_WIDTH_MARGIN, y + y_d*BOX_HEIGHT_MARGIN)
                          for x_d, y_d in DIRECTIONS]
     all_points = []
     for x_p, y_p in all_points_tuples:
         all_points.append(x_p)
         all_points.append(y_p)
-    all_points.append('asd')
     return all_points
 
 
-def create_data():
-    centers_by_main_letters = load_data(DATA_PATH)
-    all_centers_names = [center for mains_center in centers_by_main_letters.values() for center in mains_center]
-    all_centers = [name_to_location(center) for center in all_centers_names]
-    all_centers_points = [center_to_all_points(x, y) for x, y in all_centers]
-
-    return all_centers_points
+def create_data(path):
+    centers_by_main_letters = load_data(path)
+    all_centers = [center for letter_centers in centers_by_main_letters.values() for center in letter_centers]
+    vertices = list(map(center_to_all_points, all_centers))
+    labels = list(map(lambda x: 1, vertices))
+    return np.array(vertices), np.array(labels)
 
 
 def change_image(data, image):
@@ -68,7 +67,7 @@ def change_image(data, image):
 
 
 def main():
-    data = create_data()
+    data = create_data(DATA_PATH)[0]
     path = r"C:\Workspace\MyOCR\EAST\eli east gez\test\letters\asd.txt"
     with open(path, 'w') as csv_file:
         [csv_file.write(','.join(map(str, line)) + '\n') for line in data]

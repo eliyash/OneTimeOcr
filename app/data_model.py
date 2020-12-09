@@ -12,7 +12,7 @@ class DataModel:
         self.instances_locations_per_image = [dict() for _ in self.images_paths]
         self.is_page_ready_map = [False for _ in self.images_paths]
 
-        self.different_letters = Subject()
+        self.different_letters = Subject(dict())
         self.instances_locations_by_letters = Subject(dict())
 
         self.page = Subject()
@@ -32,7 +32,9 @@ class DataModel:
                 self.is_page_ready_map[page] = False
                 removed_values = [instances_locations.pop(key) for key in to_remove]
                 unknown_values = instances_locations[UNKNOWN_KEY] if UNKNOWN_KEY in instances_locations else set()
-                unknown_values.union({location for elem_in_pop in removed_values for location in elem_in_pop})
+                unknown_values = unknown_values.union(
+                    {location for elem_in_pop in removed_values for location in elem_in_pop}
+                )
                 instances_locations[UNKNOWN_KEY] = unknown_values
         self.instances_locations_by_letters.data = self.instances_locations_per_image[self.current_page]
 
@@ -44,7 +46,7 @@ class DataModel:
         self.is_page_ready_map[self.current_page] = value
 
     def set_page(self, index: int):
-        if self.current_page:
+        if self.current_page is not None:
             self.instances_locations_per_image[self.current_page] = self.instances_locations_by_letters.data
         self.image_path = self.images_paths[index]
         self.pil_image = Image.open(str(self.image_path))
