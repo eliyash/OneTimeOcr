@@ -1,0 +1,16 @@
+tasks (some are optional):
+- improve mvc
+- add loading data set
+- add gt page visualization (boxes as image)
+- support different boxes sizes
+- add automatic letters clustering
+- add support for moving / removing letters
+- support marking just part of page
+- make test data consistent
+- ignore misses and false of lettres detection in boundary
+- split letters by logic in train
+- add visualization for training and inference process
+- chose wisely networks
+- add support for punctuation (also nikud like in hebrew)
+- detect spaces
+- add lettres on page into words and lines tool
