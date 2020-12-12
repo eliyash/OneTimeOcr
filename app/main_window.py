@@ -76,11 +76,6 @@ class MainWindow:
             self._view_model, self._run_gui_action, self._get_letter_by_key, self._main_letters_bar
         )
 
-        self._main_letters_screen = MainLettersScreen(
-            self._view_model, self._run_gui_action,
-            self._get_letter_by_key, self._main_letters_bar
-        )
-
         self._duplicates_letters_screen = DuplicateLettersFrame(
             self._view_model, self._run_gui_action, self._get_letter_patch, self._duplicates_letters_frame
         )

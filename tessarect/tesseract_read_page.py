@@ -20,6 +20,10 @@ class Square:
         self.left = left
         self.width = width
 
+    def get_center(self):
+        top, height, left, width = self.top, self.height, self.left, self.width
+        return left + width//2, top + height//2
+
     def get_surrounding_line(self):
         top, height, left, width = self.top, self.height, self.left, self.width
         return [(left, top), (left, top + height), (left + width, top + height), (left + width, top), (left, top)]
@@ -62,8 +66,8 @@ class Word:
         return Word(self.line, self.word_str, self.bounding_box.clone(), [letter.clone() for letter in self.letters])
 
 
-def generate_word_boxes(img):
-    word_data = pytesseract.image_to_data(img, output_type=Output.DICT, lang='heb')
+def generate_word_boxes(img, lang=None):
+    word_data = pytesseract.image_to_data(img, output_type=Output.DICT, lang=lang)
     # from utils import save_data, load_data
     # word_data = load_data(Locations.TESSERACT_RESULT_FOLDER + "word_data.json")
     # save_data(word_data, Locations.TESSERACT_RESULT_FOLDER + "word_data.json")
@@ -92,8 +96,8 @@ def generate_word_boxes(img):
     return all_words
 
 
-def generate_letter_boxes(img):
-    letter_data = pytesseract.image_to_boxes(img, output_type=Output.DICT, lang='heb')
+def generate_letter_boxes(img, lang=None):
+    letter_data = pytesseract.image_to_boxes(img, output_type=Output.DICT, lang=lang)
     # from utils import save_data, load_data
     # letter_data = load_data(Locations.TESSERACT_RESULT_FOLDER + "letter_data.json")
     # save_data(letter_data, Locations.TESSERACT_RESULT_FOLDER + "letter_data.json")
@@ -216,11 +220,24 @@ def basic_matching():
     cv2.waitKey()
 
 
+def get_tessarect_page_letters(page):
+    letters = generate_letter_boxes(page)
+    words = generate_word_boxes(page)
+
+    match_letters_with_words(words, letters)
+
+    for word in words:
+        word.match_letters_to_word_boxes()
+
+    letter_centers = [(letter.name, letter.bounding_box.get_center()) for word in words for letter in word.letters]
+    return letter_centers
+
+
 def main():
     orig_image = cv2.imread(Locations.PAGE_TO_READ_PATH)
 
-    letters = generate_letter_boxes(orig_image)
-    words = generate_word_boxes(orig_image)
+    letters = generate_letter_boxes(orig_image, lang='heb')
+    words = generate_word_boxes(orig_image, lang='heb')
 
     match_letters_with_words(words, letters)
 

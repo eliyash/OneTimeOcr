@@ -7,7 +7,7 @@ from app.special_values import UNKNOWN_KEY
 
 class LettersImagesFrame:
     def __init__(self, view_model: ViewModel, run_gui_action: Callable, get_image_patch: Callable, frame):
-        self._letters_in_a_row = 10
+        self._letters_in_a_row = 30
         self._view_model = view_model
         self._run_gui_action = run_gui_action
         self._get_image_patch = get_image_patch

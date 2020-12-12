@@ -3,6 +3,8 @@ import random
 import sys
 import time
 import json
+from collections import defaultdict
+
 import cv2
 import numpy as np
 from pathlib import Path
@@ -19,6 +21,8 @@ from letter_classifier.train_identifier import run_train as train_identifier
 from letter_detector.train_detector import run_train as train_detector
 from letter_detector.find_centers import detect_letters
 import logging
+
+from tessarect.tesseract_read_page import get_tessarect_page_letters
 
 
 def create_logger(logger_name=__file__):
@@ -40,6 +44,7 @@ class App:
         self._data_model = DataModel(IMAGES_PATH)
 
         list_of_buttons_and_indicators = [
+            (True, ('Tesserct', self._wrap_to_executor(self._get_tessarect_page_letters))),
             (True, ('Detect', self._wrap_to_executor(self._detect_letters))),
             (True, ('Identify', self._wrap_to_executor(self._identify_letters))),
             (True, ('Both', self._wrap_to_executor(self._run_both_nets))),
@@ -176,6 +181,18 @@ class App:
         self._set_duplicate_letters(UNKNOWN_KEY, set())
         union_notifier_and_dict_sets(self._data_model.instances_locations_by_letters, locations_dict)
         logger.info('identification done')
+
+    def _get_tessarect_page_letters(self):
+        cv_image = np.array(self._data_model.pil_image)
+        letters_and_locations = get_tessarect_page_letters(cv_image)
+        dup_letters = defaultdict(set)
+        for letter, location in letters_and_locations:
+            dup_letters[letter].add(location)
+        dup_letters = {next(iter(locations)): locations for locations in dup_letters.values()}
+        key_image_map = {location: self._get_image_patch(cv_image, location) for location in dup_letters.keys()}
+
+        union_notifier_and_dict_values(self._data_model.different_letters, key_image_map)
+        union_notifier_and_dict_sets(self._data_model.instances_locations_by_letters, dict(dup_letters))
 
     def _look_for_duplicates(self, key, letter_center: Tuple, num_of_letters: int):
         images_of_duplicated_letters = self._get_image_patch(self._data_model.pil_image, letter_center)
