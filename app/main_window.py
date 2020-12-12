@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import ttk
+from pathlib import Path
+from tkinter import ttk, filedialog
 from typing import Callable, Tuple, List
 
 from PIL import ImageTk
@@ -95,6 +96,10 @@ class MainWindow:
         self._text_frame.tkraise()
 
         self._view_model.data_model.page.attach(self._update_image)
+
+    @staticmethod
+    def get_folder(start_dir: Path, text: str):
+        return Path(filedialog.askdirectory(initialdir=str(start_dir), title=text))
 
     def _set_page_state(self):
         is_ready = self._is_page_ready.get()

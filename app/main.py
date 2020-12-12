@@ -44,6 +44,7 @@ class App:
         self._data_model = DataModel(IMAGES_PATH)
 
         list_of_buttons_and_indicators = [
+            (True, ('Load', self._on_load_data)),
             (True, ('Tesserct', self._wrap_to_executor(self._get_tessarect_page_letters))),
             (True, ('Detect', self._wrap_to_executor(self._detect_letters))),
             (True, ('Identify', self._wrap_to_executor(self._identify_letters))),
@@ -103,6 +104,26 @@ class App:
         train_detector(data_set)
         train_identifier(data_set)
 
+    def _on_load_data(self):
+        data_set_name = self._gui.get_folder(LETTERS_PATH, 'select dataset').name
+        self._wrap_to_executor(lambda: self._load_data(data_set_name))()
+
+    def _load_data(self, data_set_name):
+        dataset_path = LETTERS_PATH / data_set_name
+
+        pages_folder = dataset_path / 'pages'
+        letters_folder = dataset_path / 'letters_map'
+
+        key_image_dict = {key_path.name: cv2.imread(str(key_path)) for key_path in letters_folder.iterdir()}
+        self._data_model.page._subject_state = None
+        self._data_model.different_letters.data = key_image_dict
+
+        page_folder_names = self._get_pages_names()
+        for key_path in pages_folder.iterdir():
+            page = page_folder_names.index(key_path.name)
+            with open(str(key_path / 'instances_locations_by_index.json')) as location_dict_file:
+                self._data_model.instances_locations_per_image[page] = json.load(location_dict_file)
+
     def _on_save_data(self):
         data_set_name = time.strftime("dataset_%Y%m%d-%H%M%S")
         new_dataset_path = LETTERS_PATH / data_set_name
@@ -114,9 +135,7 @@ class App:
         ready_map = self._data_model.is_page_ready_map
         images_paths = self._data_model.images_paths
         instances_locations = self._data_model.instances_locations_per_image
-        page_folder_names = [
-            self._data_model.images_paths[page].with_suffix('').name for page in range(len(instances_locations))
-        ]
+        page_folder_names = self._get_pages_names()
 
         for page_path, page_folder_name, instance_locations, is_ready in \
                 zip(images_paths, page_folder_names, instances_locations, ready_map):
@@ -128,6 +147,9 @@ class App:
         for key, image in self._data_model.different_letters.data.items():
             self.save_individual_images(image, key, letters_folder)
         self._train_networks(data_set_name)
+
+    def _get_pages_names(self):
+        return [page_path.with_suffix('').name for page_path in self._data_model.images_paths]
 
     @classmethod
     def _save_pages_letters(cls, page: np.ndarray, instances_locations: Dict, letters_folder: Path, is_ready: bool):
