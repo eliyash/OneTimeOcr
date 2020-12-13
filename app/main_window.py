@@ -116,8 +116,7 @@ class MainWindow:
         self._view_model.data_model.reset_data()
         self._is_page_ready.set(self._view_model.data_model.is_page_ready_map[page])
 
-    def _get_letter_by_key(self, key):
-        scale = (key != self._view_model.current_chosen_letter.data)
+    def _get_letter_by_key(self, key, scale=True):
         key_image = self._view_model.data_model.different_letters.data[key]
         return key_image[::2, ::2] if scale else key_image
 
