@@ -21,10 +21,10 @@ class MainWindow:
             on_look_for_letter_callback: Callable,
             get_image_patch: Callable,
             list_of_buttons_and_indicators: List[Tuple[bool, Tuple]],
+            menu_values: List[Tuple[str, List]],
             translation: Tuple = ZERO_TRANSLATION
     ):
         self._view_model = ViewModel(data_model)
-
         self._on_look_for_letter_callback = on_look_for_letter_callback
         self._get_image_patch_callback = get_image_patch
         self._translation = translation
@@ -32,6 +32,15 @@ class MainWindow:
         self._window = tk.Tk(className=' Mareh - One Time OCR')
         self._im = tk.PhotoImage('../Mareh OCR.ico')
         self._window.iconbitmap(self._im)
+
+        self._menu_elem = tk.Menu(self._window)
+        for elem_name, sub_elements in menu_values:
+            elem_menu = tk.Menu(self._menu_elem, tearoff=0)
+            for name, func in sub_elements:
+                elem_menu.add_command(label=name, command=func)
+            self._menu_elem.add_cascade(label=elem_name, menu=elem_menu)
+        self._window.config(menu=self._menu_elem)
+
         self._top_bar = tk.Frame(self._window)
         self._top_bar.grid(row=0, column=0, sticky="nsew")
 

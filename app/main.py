@@ -44,23 +44,31 @@ class App:
         self._data_model = DataModel(IMAGES_PATH)
 
         list_of_buttons_and_indicators = [
-            (True, ('Load', self._on_load_data)),
-            (True, ('Tesserct', self._wrap_to_executor(self._get_tessarect_page_letters))),
-            (True, ('Detect', self._wrap_to_executor(self._detect_letters))),
-            (True, ('Identify', self._wrap_to_executor(self._identify_letters))),
-            (True, ('Both', self._wrap_to_executor(self._run_both_nets))),
-            (True, ('Save and train', self._wrap_to_executor(self._on_save_data))),
-            (True, ('Train', self._wrap_to_executor(self._train_networks_last_dataset))),
             (True, ('Prev', lambda: self._page_move(back=True))),
             (False, ('Page', self._data_model.page)),
             (True, ('Next', self._page_move)),
         ]
 
+        menu_values = [
+            ('Data Set', [
+                ('Load', self._on_load_data),
+                ('Save and train', self._wrap_to_executor(self._on_save_data)),
+                ('Train', self._wrap_to_executor(self._train_networks_last_dataset))
+            ]),
+            ('Find Letters', [
+                ('Tesserct', self._wrap_to_executor(self._get_tessarect_page_letters)),
+                ('Save and train', self._wrap_to_executor(self._on_save_data)),
+                ('Detect', self._wrap_to_executor(self._detect_letters)),
+                ('Identify', self._wrap_to_executor(self._identify_letters)),
+                ('Both', self._wrap_to_executor(self._run_both_nets))
+            ])
+        ]
         self._gui = MainWindow(
             self._data_model,
             self._look_for_duplicates,
             self._get_image_patch,
-            list_of_buttons_and_indicators
+            list_of_buttons_and_indicators,
+            menu_values
         )
         self._data_model.page.data = 0
         self._data_model.different_letters.data = {UNKNOWN_KEY: UNKNOWN_IMAGE}
