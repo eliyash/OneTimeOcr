@@ -85,7 +85,13 @@ class MainLettersScreen(LettersImagesFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._view_model.data_model.different_letters.attach(self._run_gui_action(self.show_images))
+        self._view_model.current_chosen_letter.attach(self._run_gui_action(self.update_chosen_letter))
         self._letters_in_a_row = 40
+
+    def update_chosen_letter(self, _):
+        different_letters = self._get_current_location_duplicates
+        super().update_images(set())
+        self.show_images({k: None for k in different_letters})
 
     def show_images(self, different_letters):
         super().update_images(set(different_letters.keys()))
