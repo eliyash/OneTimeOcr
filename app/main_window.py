@@ -1,17 +1,16 @@
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk, filedialog
-from typing import Callable, Tuple, List
+from typing import Callable, Tuple, List, Dict
 
 from PIL import ImageTk
 
 from app.buttons_and_texts import ButtonsAndTexts
-from app.chosen_letter_image import ChosenLetterImageHandler
 from app.data_model import DataModel, ViewModel
 from app.letter_images_frame import MainLettersScreen, DuplicateLettersFrame
 from app.letters_in_page_handler import LettersInPageHandler
 from app.special_values import NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES, ZERO_TRANSLATION, PAGE_SIZE, \
-    UNKNOWN_KEY
+    UNKNOWN_KEY, PAD_X
 
 
 class MainWindow:
@@ -21,7 +20,7 @@ class MainWindow:
             on_look_for_letter_callback: Callable,
             get_image_patch: Callable,
             list_of_buttons_and_indicators: List[Tuple[bool, Tuple]],
-            menu_values: List[Tuple[str, List]],
+            menu_values: Dict[str, List],
             translation: Tuple = ZERO_TRANSLATION
     ):
         self._view_model = ViewModel(data_model)
@@ -34,7 +33,9 @@ class MainWindow:
         self._window.iconbitmap(self._im)
 
         self._menu_elem = tk.Menu(self._window)
-        for elem_name, sub_elements in menu_values:
+
+        menu_values['Find Letters'].append(('Correlate Letter', self._correlate_letter))
+        for elem_name, sub_elements in menu_values.items():
             elem_menu = tk.Menu(self._menu_elem, tearoff=0)
             for name, func in sub_elements:
                 elem_menu.add_command(label=name, command=func)
@@ -44,18 +45,24 @@ class MainWindow:
         self._top_bar = tk.Frame(self._window)
         self._top_bar.grid(row=0, column=0, sticky="nsew")
 
-        self._buttons_and_indicators = ButtonsAndTexts(self._top_bar, list_of_buttons_and_indicators)
-        self._main_letters_bar = tk.Frame(self._window)
-        self._main_letters_bar.grid(row=1, column=0, sticky="nsew")
+        self._pages_state_bar = tk.Frame(self._top_bar)
+        self._pages_state_bar.pack(side=tk.LEFT, padx=PAD_X)
 
+        self._separator = ttk.Separator(self._top_bar, orient='vertical')
+        self._separator.pack(side=tk.LEFT, fill=tk.Y, padx=PAD_X)
+
+        self._main_letters_bar = tk.Frame(self._top_bar)
+        self._main_letters_bar.pack(side=tk.LEFT, padx=PAD_X)
+
+        self._pages_control_bar = tk.Frame(self._pages_state_bar)
+        self._pages_control_bar.grid(row=0, column=0, sticky="nsew")
+
+        self._buttons_and_indicators = ButtonsAndTexts(self._pages_control_bar, list_of_buttons_and_indicators)
         self._is_page_ready = tk.BooleanVar()
         self._is_page_ready_button = tk.Checkbutton(
-            self._top_bar, text="is ready", variable=self._is_page_ready, command=self._set_page_state
+            self._pages_state_bar, text="is ready", variable=self._is_page_ready, command=self._set_page_state
         )
-        self._is_page_ready_button.pack(side=tk.LEFT)
-
-        self._look_for_dup_button = tk.Button(self._top_bar, text="Correlate Letter", command=self._on_look_for_letter)
-        self._look_for_dup_button.pack(side=tk.LEFT)
+        self._is_page_ready_button.grid(row=1, column=0, sticky="nsew")
 
         self._data_frame = ttk.Notebook(self._window)
         self._text_frame = ttk.Frame(self._data_frame)
@@ -71,12 +78,6 @@ class MainWindow:
         self._canvas.bind("<Button-1>", self._on_mouse_press_left)
         self._canvas.bind("<Button-2>", self._on_mouse_press_wheel)
         self._canvas.bind("<Button-3>", self._on_mouse_press_right)
-
-        self._duplicates = tk.Scale(self._top_bar, from_=1, to=200, orient=tk.HORIZONTAL)
-        self._duplicates.set(NUM_OF_LETTERS)
-        self._duplicates.pack(side=tk.LEFT)
-
-        self._chosen_letter_handler = ChosenLetterImageHandler(self._view_model, self._run_gui_action, self._top_bar)
 
         self._main_letters_handler = LettersInPageHandler(
             self._view_model, self._run_gui_action, self._canvas, self._get_letter_patch, self._translator
@@ -129,12 +130,30 @@ class MainWindow:
     def _run_gui_action(self, func, delay=0):
         return lambda *args, **kwargs: self._window.after(delay, func(*args, **kwargs))
 
-    def _on_look_for_letter(self):
+    def _correlate_letter(self):
+        window = tk.Tk(className='Correlate')
+        label = tk.Label(window, text="chose num of correlations:")
+        label.grid(row=0, column=0, sticky="nsew")
+
+        num_duplicates_scale = tk.Scale(window, from_=1, to=200, orient=tk.HORIZONTAL)
+        num_duplicates_scale.set(NUM_OF_LETTERS)
+        num_duplicates_scale.grid(row=0, column=1, sticky="nsew")
+
+        def func():
+            val = num_duplicates_scale.get()
+            window.destroy()
+            self._on_look_for_letter(val)
+        button_run = tk.Button(window, text="Run", command=func)
+        button_run.grid(row=1, column=0, sticky="nsew")
+        button_close = tk.Button(window, text="Cancel", command=window.destroy)
+        button_close.grid(row=1, column=1, sticky="nsew")
+
+    def _on_look_for_letter(self, num_duplicates):
         letter_key = self._view_model.current_chosen_letter.data
         instances_locations_by_letters = self._view_model.data_model.instances_locations_by_letters.data
         if letter_key in instances_locations_by_letters and instances_locations_by_letters[letter_key]:
             letter = next(iter((instances_locations_by_letters[letter_key])))
-            self._on_look_for_letter_callback(letter_key, letter, self._duplicates.get())
+            self._on_look_for_letter_callback(letter_key, letter, num_duplicates)
 
     def _on_mouse_press_left(self, event):
         location = self._translator((event.x, event.y))

@@ -8,5 +8,6 @@ MIN_MOVES = (-100, -100)
 MAX_MOVES = (350, 800)
 ZERO_TRANSLATION = (0, 0)
 PAGE_SIZE = (1500, 1500)
+PAD_X = (5, 5)
 LAST_NET = 'last_net.pth'
 UNKNOWN_KEY = 'unknown'

@@ -44,24 +44,24 @@ class App:
         self._data_model = DataModel(IMAGES_PATH)
 
         list_of_buttons_and_indicators = [
-            (True, ('Prev', lambda: self._page_move(back=True))),
+            (True, ('<', lambda: self._page_move(back=True))),
             (False, ('Page', self._data_model.page)),
-            (True, ('Next', self._page_move)),
+            (True, ('>', self._page_move)),
         ]
 
-        menu_values = [
-            ('Data Set', [
+        menu_values = {
+            'Data Set': [
                 ('Load', self._on_load_data),
                 ('Save and train', self._wrap_to_executor(self._on_save_data)),
                 ('Train', self._wrap_to_executor(self._train_networks_last_dataset))
-            ]),
-            ('Find Letters', [
+            ],
+            'Find Letters': [
                 ('Tesserct', self._wrap_to_executor(self._get_tessarect_page_letters)),
                 ('Detect', self._wrap_to_executor(self._detect_letters)),
                 ('Identify', self._wrap_to_executor(self._identify_letters)),
                 ('Both', self._wrap_to_executor(self._run_both_nets))
-            ])
-        ]
+            ]
+        }
         self._gui = MainWindow(
             self._data_model,
             self._look_for_duplicates,
