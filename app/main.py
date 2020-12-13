@@ -57,7 +57,6 @@ class App:
             ]),
             ('Find Letters', [
                 ('Tesserct', self._wrap_to_executor(self._get_tessarect_page_letters)),
-                ('Save and train', self._wrap_to_executor(self._on_save_data)),
                 ('Detect', self._wrap_to_executor(self._detect_letters)),
                 ('Identify', self._wrap_to_executor(self._identify_letters)),
                 ('Both', self._wrap_to_executor(self._run_both_nets))

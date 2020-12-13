@@ -57,14 +57,12 @@ class MainWindow:
         self._look_for_dup_button = tk.Button(self._top_bar, text="Correlate Letter", command=self._on_look_for_letter)
         self._look_for_dup_button.pack(side=tk.LEFT)
 
-        self._text_frame = tk.Frame(self._window)
-        self._text_frame.grid(row=2, column=0, sticky="nsew")
-
-        self._duplicates_letters_frame = tk.Frame(self._window)
-        self._duplicates_letters_frame.grid(row=2, column=0, sticky="nsew")
-
-        self._main_letters_frame = tk.Frame(self._window)
-        self._main_letters_frame.grid(row=2, column=0, sticky="nsew")
+        self._data_frame = ttk.Notebook(self._window)
+        self._text_frame = ttk.Frame(self._data_frame)
+        self._duplicates_letters_frame = ttk.Frame(self._data_frame)
+        self._data_frame.add(self._text_frame, text='Page')
+        self._data_frame.add(self._duplicates_letters_frame, text='Letters')
+        self._data_frame.grid(row=2, column=0, sticky="nsew")
 
         self._canvas = tk.Canvas(self._text_frame, width=PAGE_SIZE[0], height=PAGE_SIZE[1])
         self._canvas.pack(side=tk.LEFT)
@@ -91,20 +89,6 @@ class MainWindow:
         self._duplicates_letters_screen = DuplicateLettersFrame(
             self._view_model, self._run_gui_action, self._get_letter_patch, self._duplicates_letters_frame
         )
-
-        self._switch_mode_frame = tk.Frame(self._top_bar)
-        self._switch_mode_frame.pack(side=tk.LEFT)
-
-        values = [('text', self._text_frame.tkraise), ('duplicates', self._duplicates_letters_frame.tkraise)]
-        v = tk.StringVar(self._switch_mode_frame, values[0][0])
-
-        self._switch_mode = []
-        for text, func in values:
-            rb = ttk.Radiobutton(self._switch_mode_frame, text=text, variable=v, value=text, command=func)
-            rb.pack(side=tk.LEFT)
-            self._switch_mode.append(rb)
-
-        self._text_frame.tkraise()
 
         self._view_model.data_model.page.attach(self._update_image)
 
