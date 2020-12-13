@@ -29,7 +29,9 @@ class MainWindow:
         self._get_image_patch_callback = get_image_patch
         self._translation = translation
 
-        self._window = tk.Tk()
+        self._window = tk.Tk(className=' Mareh - One Time OCR')
+        self._im = tk.PhotoImage('../Mareh OCR.ico')
+        self._window.iconbitmap(self._im)
         self._top_bar = tk.Frame(self._window)
         self._top_bar.grid(row=0, column=0, sticky="nsew")
 
