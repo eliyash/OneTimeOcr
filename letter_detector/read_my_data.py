@@ -3,7 +3,7 @@ import json
 import cv2
 import numpy as np
 
-from app.special_values import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
+from app.tools import box_lines_from_center
 
 NUM_H_W = (10, 10)
 IMAGE_TO_SHOW = 10
@@ -36,21 +36,17 @@ def name_to_location(name):
 DIRECTIONS = [(-1, -1), (+1, -1), (+1, +1), (-1, +1)]
 
 
-def center_to_all_points(point):
-    x, y = point
-    all_points_tuples = [(x + x_d*BOX_WIDTH_MARGIN, y + y_d*BOX_HEIGHT_MARGIN)
-                         for x_d, y_d in DIRECTIONS]
-    all_points = []
-    for x_p, y_p in all_points_tuples:
-        all_points.append(x_p)
-        all_points.append(y_p)
+def center_to_all_points(point, letter_shape):
+    x_start, x_stop, y_start, y_stop = box_lines_from_center(point, letter_shape)
+    all_points = [val for y in [y_start, y_stop] for x in [x_start, x_stop] for val in (x, y)]
     return all_points
 
 
-def create_data(path):
+def create_data(path, letter_shape):
+    # letter_margin = box_margin_from_box_shape(letter_shape)
     centers_by_main_letters = load_data(path)
     all_centers = [center for letter_centers in centers_by_main_letters.values() for center in letter_centers]
-    vertices = list(map(center_to_all_points, all_centers))
+    vertices = list(map(lambda x: center_to_all_points(x, letter_shape), all_centers))
     labels = list(map(lambda x: 1, vertices))
     return np.array(vertices), np.array(labels)
 
@@ -67,7 +63,7 @@ def change_image(data, image):
 
 
 def main():
-    data = create_data(DATA_PATH)[0]
+    data = create_data(DATA_PATH, (50, 50))[0]
     path = r"C:\Workspace\MyOCR\EAST\eli east gez\test\letters\asd.txt"
     with open(path, 'w') as csv_file:
         [csv_file.write(','.join(map(str, line)) + '\n') for line in data]

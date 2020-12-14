@@ -6,6 +6,8 @@ import os
 import torch
 import torchvision.transforms as transforms
 from torch.utils import data
+
+from app.tools import get_data_params_from_file
 from letter_detector.read_my_data import create_data
 
 SIZE_OF_HALF_PIXEL = (0.5, 0.5, 0.5)
@@ -327,6 +329,7 @@ def get_score_geo(img, vertices, labels, scale, length):
 class CustomDataset(data.Dataset):
 	def __init__(self, img_path, gt_path, scale=0.25, length=128, duplicate_pages=1):
 		super(CustomDataset, self).__init__()
+		self.letter_shape = get_data_params_from_file(img_path.parent)[0]
 		gt_file_names = list(filter(lambda x: x != 'WIP', sorted(os.listdir(gt_path))))
 		gt_file_names = [file for file in gt_file_names]
 		self.gt_files = [os.path.join(gt_path, gt_file, 'instances_locations_by_index.json') for gt_file in gt_file_names for _ in range(duplicate_pages)]
@@ -343,7 +346,7 @@ class CustomDataset(data.Dataset):
 		return len(self.img_files)
 
 	def __getitem__(self, index):
-		vertices, labels = create_data(self.gt_files[index])
+		vertices, labels = create_data(self.gt_files[index], self.letter_shape)
 		img = Image.open(self.img_files[index])
 		img, vertices = adjust_height(img, vertices)
 		img, vertices = rotate_img(img, vertices)

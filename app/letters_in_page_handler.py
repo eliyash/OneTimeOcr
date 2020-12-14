@@ -42,10 +42,11 @@ class LettersInPageHandler:
         self._view_model.data_model.instances_locations_by_letters.data = data
 
     def handle_change_in_main_letters(self, new_main_letters):
+        letter_shape = self._view_model.data_model.letter_shape
         to_remove, to_add = get_values_to_add_and_remove(self._letters_markers_managers, new_main_letters)
         [self._letters_markers_managers.pop(letter_to_remove) for letter_to_remove in to_remove]
         for letter_to_add in to_add:
-            marker_drawer = SimpleMarkerDrawer(self._canvas, self._get_random_color(), translator=self._translator)
+            marker_drawer = SimpleMarkerDrawer(self._canvas, self._get_random_color(), letter_shape, self._translator)
             self._letters_markers_managers[letter_to_add] = marker_drawer
 
     def set_marker_managers_for_duplicates(self, locations_dict):

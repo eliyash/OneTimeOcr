@@ -12,10 +12,10 @@ from typing import Tuple, Dict, Union
 from concurrent.futures.thread import ThreadPoolExecutor
 from app.data_model import DataModel
 from app.main_window import MainWindow
-from app.special_values import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN, MAX_LETTER_INCIDENTS, UNKNOWN_KEY
-from app.special_images import UNKNOWN_IMAGE
+from app.special_values import MAX_LETTER_INCIDENTS, UNKNOWN_KEY
 from app.paths import IMAGES_PATH, LETTERS_PATH, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH
-from app.tools import are_points_close, union_notifier_and_dict_values, union_notifier_and_dict_sets
+from app.tools import are_points_close, union_notifier_and_dict_values, union_notifier_and_dict_sets, \
+    get_unknown_key_image, box_lines_from_center, get_box_center
 from letter_classifier.identify_letter import identify_letters
 from letter_classifier.train_identifier import run_train as train_identifier
 from letter_detector.train_detector import run_train as train_detector
@@ -70,7 +70,7 @@ class App:
             menu_values
         )
         self._data_model.page.data = 0
-        self._data_model.different_letters.data = {UNKNOWN_KEY: UNKNOWN_IMAGE}
+        self._data_model.different_letters.data = {UNKNOWN_KEY: get_unknown_key_image(self._data_model.letter_shape)}
 
     def _wrap_to_executor(self, func):
         def func_with_exception(*args, **kwargs):
@@ -83,15 +83,11 @@ class App:
             self._executor.submit(func_with_exception, *args, **kwargs)
         return func_submit
 
-    @staticmethod
-    def _get_image_patch(image, key):
+    def _get_image_patch(self, image, key):
         if key == UNKNOWN_KEY:
-            return UNKNOWN_IMAGE
-        (x_center, y_center) = key
-        letter_image = np.array(image)[
-           y_center - BOX_HEIGHT_MARGIN: y_center + BOX_HEIGHT_MARGIN,
-           x_center - BOX_WIDTH_MARGIN: x_center + BOX_WIDTH_MARGIN
-        ]
+            return get_unknown_key_image(self._data_model.letter_shape)
+        x_start, y_start, x_stop, y_stop = box_lines_from_center(key, self._data_model.letter_shape)
+        letter_image = np.array(image)[y_start: y_stop, x_start: x_stop]
         return letter_image
 
     @staticmethod
@@ -158,15 +154,14 @@ class App:
     def _get_pages_names(self):
         return [page_path.with_suffix('').name for page_path in self._data_model.images_paths]
 
-    @classmethod
-    def _save_pages_letters(cls, page: np.ndarray, instances_locations: Dict, letters_folder: Path, is_ready: bool):
+    def _save_pages_letters(self, page: np.ndarray, instances_locations: Dict, letters_folder: Path, is_ready: bool):
         letters_folder = letters_folder if is_ready else letters_folder / 'WIP'
         for key, duplicate_letters in instances_locations.items():
-            main_letter_folder = letters_folder / cls._key_to_str(key)
+            main_letter_folder = letters_folder / self._key_to_str(key)
             main_letter_folder.mkdir(parents=True, exist_ok=True)
             for letter_location in duplicate_letters:
-                letter_image = cls._get_image_patch(page, letter_location)
-                cls.save_individual_images(letter_image, letter_location, main_letter_folder)
+                letter_image = self._get_image_patch(page, letter_location)
+                self.save_individual_images(letter_image, letter_location, main_letter_folder)
 
     @staticmethod
     def _save_page(instances_locations_by_letters: Dict, pages_folder: Path, page_folder_name: str, is_ready: bool):
@@ -204,7 +199,9 @@ class App:
         identifier_path = max(IDENTIFIER_NETS_PATH.iterdir(), key=lambda x: x.name)
         logger.info('identifying letters...')
         unknown_locations = self._data_model.instances_locations_by_letters.data[UNKNOWN_KEY]
-        locations_dict, letters_map = identify_letters(self._data_model.image_path, unknown_locations, identifier_path)
+        locations_dict, letters_map = identify_letters(
+            self._data_model.image_path, unknown_locations, identifier_path, self._data_model.letter_shape
+        )
         logger.info('letters identified')
         union_notifier_and_dict_values(self._data_model.different_letters, letters_map)
         self._set_duplicate_letters(UNKNOWN_KEY, set())
@@ -224,6 +221,7 @@ class App:
         union_notifier_and_dict_sets(self._data_model.instances_locations_by_letters, dict(dup_letters))
 
     def _look_for_duplicates(self, key, letter_center: Tuple, num_of_letters: int):
+        letter_shape = self._data_model.letter_shape
         images_of_duplicated_letters = self._get_image_patch(self._data_model.pil_image, letter_center)
         nw_locations = self._basic_matching_new(np.array(self._data_model.pil_image), images_of_duplicated_letters)
         nw_locations.sort(key=lambda v: v[1], reverse=True)
@@ -232,11 +230,11 @@ class App:
         while to_check:
             new_point = to_check.pop(0)
             to_add.append(new_point)
-            to_check = [location for location in to_check if not are_points_close(location[0], new_point[0])]
+            to_check = [location for location in to_check
+                        if not are_points_close(location[0], new_point[0], letter_shape)]
 
         to_add = to_add[:num_of_letters]
-        found_locations = {(x_center + BOX_WIDTH_MARGIN, y_center + BOX_HEIGHT_MARGIN)
-                           for (y_center, x_center), val in to_add}
+        found_locations = {get_box_center(point, letter_shape) for point, val in to_add}
         self._set_duplicate_letters(key, found_locations)
 
     def _set_duplicate_letters(self, letter, locations):

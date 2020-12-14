@@ -9,8 +9,7 @@ from app.buttons_and_texts import ButtonsAndTexts
 from app.data_model import DataModel, ViewModel
 from app.letter_images_frame import MainLettersScreen, DuplicateLettersFrame
 from app.letters_in_page_handler import LettersInPageHandler
-from app.special_values import NUM_OF_LETTERS, CENTER_POINT, MAX_MOVES, MIN_MOVES, ZERO_TRANSLATION, PAGE_SIZE, \
-    UNKNOWN_KEY, PAD_X
+from app.special_values import NUM_OF_LETTERS, ZERO_X_Y, UNKNOWN_KEY, PAD_X
 
 
 class MainWindow:
@@ -21,7 +20,7 @@ class MainWindow:
             get_image_patch: Callable,
             list_of_buttons_and_indicators: List[Tuple[bool, Tuple]],
             menu_values: Dict[str, List],
-            translation: Tuple = ZERO_TRANSLATION
+            translation: Tuple = ZERO_X_Y
     ):
         self._view_model = ViewModel(data_model)
         self._on_look_for_letter_callback = on_look_for_letter_callback
@@ -70,8 +69,9 @@ class MainWindow:
         self._data_frame.add(self._text_frame, text='Page')
         self._data_frame.add(self._duplicates_letters_frame, text='Letters')
         self._data_frame.grid(row=2, column=0, sticky="nsew")
-
-        self._canvas = tk.Canvas(self._text_frame, width=PAGE_SIZE[0], height=PAGE_SIZE[1])
+        # width, height = self._view_model.data_model.page_shape
+        width, height = self.get_screen_shape()
+        self._canvas = tk.Canvas(self._text_frame, width=width, height=height)
         self._canvas.pack(side=tk.LEFT)
         self._canvas_image = None
 
@@ -93,6 +93,16 @@ class MainWindow:
 
         self._view_model.data_model.page.attach(self._update_image)
 
+    def get_screen_shape(self):
+        # TODO: may use canvace size?
+        screen_width = self._window.winfo_screenwidth()
+        screen_height = self._window.winfo_screenheight()
+        return screen_width, screen_height
+
+    def get_center_screen_point(self):
+        screen_width, screen_height = self.get_screen_shape()
+        return screen_width//2, screen_height//2
+
     @staticmethod
     def get_folder(start_dir: Path, text: str):
         return Path(filedialog.askdirectory(initialdir=str(start_dir), title=text))
@@ -104,12 +114,12 @@ class MainWindow:
     def _update_image(self, page):
         if self._canvas_image:
             self._canvas.delete(self._canvas_image)
-        self._translation = ZERO_TRANSLATION
+        self._translation = ZERO_X_Y
         tk_letter_image = ImageTk.PhotoImage(self._view_model.data_model.pil_image)
         self._canvas.image = tk_letter_image
         self._canvas_image = self._canvas.create_image(0, 0, image=tk_letter_image, anchor=tk.NW)
 
-        x, y = CENTER_POINT
+        x, y = self.get_center_screen_point()
         self._canvas.create_rectangle(
             x-2, y-2, x+2, y+2, tags=('center',), outline='purple', width=5
         )
@@ -175,19 +185,32 @@ class MainWindow:
         # self._view_model.data_model.instances_locations_by_letters.data = instances_locations_by_letters
 
     def _on_mouse_press_wheel(self, event):
-        x, y = CENTER_POINT
-        location = (event.x - x, event.y - y)
-        new_location = self._translator(location)
-        new_location_norm = tuple(
-            (min(mx, max(mn, val)) for mn, mx, val in zip(MIN_MOVES, MAX_MOVES, new_location))
-        )
-        if new_location_norm != self._translation:
-            location_norm = tuple(
-                (val + norm - orig for val, norm, orig in zip(location, new_location_norm, new_location))
-            )
-            self._canvas.move(self._canvas_image, *[-axis for axis in location_norm])
-            self._translation = new_location_norm
-            self._view_model.data_model.reset_data()
+        point = (event.x, event.y)
+        self._translation = tuple([a-b] for a, b in zip(point, self.get_center_screen_point()))
+        location = self._translator(self.get_center_screen_point())
+        self._canvas.move(self._canvas_image, *[-axis for axis in location])
+        self._view_model.data_model.reset_data()
+    #
+    # def _on_mouse_press_wheel(self, event):
+    #     x, y = self.get_center_screen_point()
+    #     location = (event.x - x, event.y - y)
+    #
+    #     screen_width, screen_height = self.get_screen_shape()
+    #     page_width, page_height = self._view_model.data_model.page_shape
+    #     max_moves = (page_width-screen_width, page_height-screen_height)
+    #     min_moves = (0, 0)
+    #
+    #     new_location = self._translator(location)
+    #     new_location_norm = tuple(
+    #         (min(mx, max(mn, val)) for mn, mx, val in zip(min_moves, max_moves, new_location))
+    #     )
+    #     if new_location_norm != self._translation:
+    #         location_norm = tuple(
+    #             (val + norm - orig for val, norm, orig in zip(location, new_location_norm, new_location))
+    #         )
+    #         self._canvas.move(self._canvas_image, *[-axis for axis in location_norm])
+    #         self._translation = new_location_norm
+    #         self._view_model.data_model.reset_data()
 
     def run(self):
         self._window.mainloop()

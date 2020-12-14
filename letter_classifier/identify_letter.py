@@ -2,6 +2,8 @@ from __future__ import print_function
 import json
 from collections import defaultdict
 from pathlib import Path
+from typing import Tuple
+
 import cv2
 import torch
 import numpy as np
@@ -9,8 +11,7 @@ from PIL import Image
 from torch.autograd import Variable
 from torchvision.transforms import transforms
 from letter_classifier.mnist_like_net import Net
-from app.special_values import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
-from app.tools import str_to_location, file_name_to_location, get_last_epoch_net, get_device
+from app.tools import str_to_location, file_name_to_location, get_last_epoch_net, get_device, box_lines_from_center
 
 
 def image_loader(loader, image):
@@ -20,7 +21,7 @@ def image_loader(loader, image):
     return var_image
 
 
-def identify_letters(image_path: str, locations, network_path: Path):
+def identify_letters(image_path: str, locations, network_path: Path, image_shape: Tuple):
     model_path = get_last_epoch_net(network_path)
 
     device = get_device()
@@ -39,7 +40,7 @@ def identify_letters(image_path: str, locations, network_path: Path):
 
     class_to_location_dict = defaultdict(lambda: set())
     for x, y in locations:
-        letter_image = image.crop((x-BOX_WIDTH_MARGIN, y-BOX_HEIGHT_MARGIN, x+BOX_WIDTH_MARGIN, y+BOX_HEIGHT_MARGIN))
+        letter_image = image.crop(tuple(box_lines_from_center((x, y), image_shape)))
         var_image = image_loader(data_transforms, letter_image)
         var_image = var_image.to(device)
         output = model(var_image)
@@ -63,7 +64,7 @@ def identify_letters(image_path: str, locations, network_path: Path):
 def main():
     image = r"C:\Workspace\MyOCR\data\images\test_gez good - Copy.jpg"
     train_path = Path(r'C:\Workspace\MyOCR\identifieng letters\networks\identifier\train_20201209-160931')
-    identify_letters(image, {(100, 100)}, train_path)
+    identify_letters(image, {(100, 100)}, train_path, (50, 50))
 
 
 if __name__ == '__main__':

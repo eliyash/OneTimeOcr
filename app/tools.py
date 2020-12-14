@@ -1,10 +1,50 @@
+import json
 from pathlib import Path
 from typing import Dict, Tuple, Set, Callable
-
 import numpy as np
-
 from app.observers import Subject
-from app.special_values import UNKNOWN_KEY, MAX_DIST, LAST_NET
+from app.special_values import UNKNOWN_KEY, LAST_NET, ZERO_X_Y
+import cv2
+
+
+def box_margin_from_box_shape(box_shape):
+    box_margin = tuple(map(lambda x: x//2, box_shape))
+    return box_margin
+
+
+def points_sum(point_a, point_b, scale_b=1):
+    sum_point = tuple(map(lambda axis_a, axis_b:  axis_a + axis_b * scale_b, point_a, point_b))
+    return sum_point
+
+
+def box_lines_from_center(location, box_shape):
+    box_margin = box_margin_from_box_shape(box_shape)
+    new_location = [axis for scale_b in [-1, 1] for axis in points_sum(location, box_margin, scale_b)]
+    return new_location
+
+
+def get_box_center(location, box_shape):
+    box_margin = box_margin_from_box_shape(box_shape)
+    return points_sum(location, box_margin)
+
+
+def get_data_params_from_file(main_path: Path):
+    with open(str(main_path / 'default_config.json')) as params_file:
+        params = json.load(params_file)
+
+    letter_shape = tuple(params['letter_shape'])
+    page_shape = tuple(params['page_shape'])
+    return letter_shape, page_shape
+
+
+def get_unknown_key_image(image_shape):
+    empty_image = np.ones(image_shape) * 255
+    letter_margin = box_margin_from_box_shape(image_shape)
+    unknown_image = cv2.line(
+        cv2.circle(empty_image, letter_margin, 15, 0, 2),
+        ZERO_X_Y, image_shape, 0, 2
+    )
+    return unknown_image
 
 
 def location_to_str(location):
@@ -21,7 +61,7 @@ def str_to_location(location):
         return location
 
 
-def are_points_close(letter_location, location, dist=MAX_DIST):
+def are_points_close(letter_location, location, dist):
     return np.linalg.norm(np.array(location) - np.array(letter_location)) < dist
 
 

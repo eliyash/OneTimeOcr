@@ -1,28 +1,23 @@
 from typing import Set
-from app.special_values import BOX_WIDTH_MARGIN, BOX_HEIGHT_MARGIN
+
+from app.tools import box_lines_from_center
 
 
 class MarkerDrawer:
-    def __init__(
-            self, canvas, color, box_width_margin=BOX_WIDTH_MARGIN, box_height_margin=BOX_HEIGHT_MARGIN, translator=None
-    ):
+    def __init__(self, canvas, color, box_shape, translator=None):
         self._local_instances_locations = set()
         self._canvas = canvas
         self._color = color
-        self._box_width_margin = box_width_margin
-        self._box_height_margin = box_height_margin
+        self._box_shape = box_shape
         self._translator = translator
 
     def __del__(self):
         self._update_letters(set())
 
     def _add_a_box(self, location):
-        x_center, y_center = self._translator(location, inverse=True)
+        translated_location = self._translator(location, inverse=True)
         self._canvas.create_rectangle(
-            x_center - self._box_width_margin,
-            y_center - self._box_height_margin,
-            x_center + self._box_width_margin,
-            y_center + self._box_height_margin,
+            *box_lines_from_center(translated_location, self._box_shape),
             tags=(location + (self._color,),),
             outline=self._color,
             fill=self._color,
