@@ -9,10 +9,8 @@ from app.tools import get_values_to_add_and_remove, get_data_params_from_file
 
 class DataModel:
     def __init__(self, image_paths: Path):
-        letter_shape, page_shape = get_data_params_from_file(image_paths.parent)
-
-        self.letter_shape = letter_shape
-        self.page_shape = page_shape
+        params = get_data_params_from_file(image_paths.parent)
+        self.letter_shape = tuple(params['letter_shape'])
 
         self.images_paths = [path for path in image_paths.iterdir()]
         self.instances_locations_per_image = [dict() for _ in self.images_paths]

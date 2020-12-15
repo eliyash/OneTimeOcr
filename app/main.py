@@ -15,7 +15,7 @@ from app.main_window import MainWindow
 from app.special_values import MAX_LETTER_INCIDENTS, UNKNOWN_KEY
 from app.paths import IMAGES_PATH, LETTERS_PATH, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH
 from app.tools import are_points_close, union_notifier_and_dict_values, union_notifier_and_dict_sets, \
-    get_unknown_key_image, box_lines_from_center, get_box_center
+    get_unknown_key_image, box_lines_from_center, get_box_center, get_data_params_from_file
 from letter_classifier.identify_letter import identify_letters
 from letter_classifier.train_identifier import run_train as train_identifier
 from letter_detector.train_detector import run_train as train_detector
@@ -40,6 +40,7 @@ logger = create_logger('main')
 
 class App:
     def __init__(self):
+        params = get_data_params_from_file(Path('./'))
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._data_model = DataModel(IMAGES_PATH)
 
@@ -51,6 +52,8 @@ class App:
 
         menu_values = {
             'Data Set': [
+                ('Make all unknown (in page)', self._wrap_to_executor(self._on_all_unknown_in_page_data)),
+                ('Clean all (in page)', self._wrap_to_executor(self._on_clean_page_data)),
                 ('Load', self._on_load_data),
                 ('Save and train', self._wrap_to_executor(self._on_save_data)),
                 ('Train', self._wrap_to_executor(self._train_networks_last_dataset))
@@ -67,7 +70,8 @@ class App:
             self._look_for_duplicates,
             self._get_image_patch,
             list_of_buttons_and_indicators,
-            menu_values
+            menu_values,
+            page_view_shape=params['page_view_shape']
         )
         self._data_model.page.data = 0
         self._data_model.different_letters.data = {UNKNOWN_KEY: get_unknown_key_image(self._data_model.letter_shape)}
@@ -106,6 +110,19 @@ class App:
     def _train_networks(data_set):
         train_detector(data_set)
         train_identifier(data_set)
+
+    def _get_empty_instance_location_map(self):
+        return {key: set() for key in self._data_model.different_letters.data.keys()}
+
+    def _on_clean_page_data(self):
+        self._data_model.instances_locations_by_letters.data = self._get_empty_instance_location_map()
+
+    def _on_all_unknown_in_page_data(self):
+        all_letters_in_sets = self._data_model.instances_locations_by_letters.data.values()
+        all_letters = {location for locations_set in all_letters_in_sets for location in locations_set}
+        empty_instances_locations_by_letters = self._get_empty_instance_location_map()
+        empty_instances_locations_by_letters[UNKNOWN_KEY] = all_letters
+        self._data_model.instances_locations_by_letters.data = empty_instances_locations_by_letters
 
     def _on_load_data(self):
         data_set_name = self._gui.get_folder(LETTERS_PATH, 'select dataset').name
