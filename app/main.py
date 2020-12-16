@@ -267,8 +267,8 @@ class App:
         min_value = matching_values[-number_letters]
         above_mat = res > min_value
         locations_by_values = [
-            [(x_center, y_center), res[x_center, y_center]]
-            for x_center, y_center in np.transpose(np.nonzero(above_mat))
+            [(x_center, y_center), res[y_center, x_center]]
+            for y_center, x_center in np.transpose(np.nonzero(above_mat))
         ]
         return locations_by_values
 
