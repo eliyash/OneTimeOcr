@@ -13,7 +13,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from app.data_model import DataModel
 from app.main_window import MainWindow
 from app.special_values import MAX_LETTER_INCIDENTS, UNKNOWN_KEY
-from app.paths import IMAGES_PATH, LETTERS_PATH, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH
+from app.paths import IMAGES_PATH, LETTERS_PATH, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH, TRAIN_DATA_PATH
 from app.tools import are_points_close, union_notifier_and_dict_values, union_notifier_and_dict_sets, \
     get_unknown_key_image, box_lines_from_center, get_box_center, get_data_params_from_file
 from letter_classifier.identify_letter import identify_letters
@@ -55,7 +55,11 @@ class App:
                 ('Make all unknown (in page)', self._wrap_to_executor(self._on_all_unknown_in_page_data)),
                 ('Clean all (in page)', self._wrap_to_executor(self._on_clean_page_data)),
                 ('Load', self._on_load_data),
-                ('Save and train', self._wrap_to_executor(self._on_save_data)),
+                ('Save', self._wrap_to_executor(self._on_save_data)),
+            ],
+            'Training Nets': [
+                ('Train Detection', self._wrap_to_executor(self._run_detection_train)),
+                ('Train Identification', self._wrap_to_executor(self._run_identification_train)),
                 ('Train', self._wrap_to_executor(self._train_networks_last_dataset))
             ],
             'Find Letters': [
@@ -143,6 +147,8 @@ class App:
             page = page_folder_names.index(key_path.name)
             with open(str(key_path / 'instances_locations_by_index.json')) as location_dict_file:
                 self._data_model.instances_locations_per_image[page] = json.load(location_dict_file)
+            with open(str(key_path / 'status.json')) as status_dict_file:
+                self._data_model.is_page_ready_map[page] = json.load(status_dict_file)['is_ready']
 
     def _on_save_data(self):
         data_set_name = time.strftime("dataset_%Y%m%d-%H%M%S")
@@ -150,6 +156,24 @@ class App:
 
         letters_folder = new_dataset_path / 'letters_map'
         pages_folder = new_dataset_path / 'pages'
+
+        ready_map = self._data_model.is_page_ready_map
+        instances_locations = self._data_model.instances_locations_per_image
+        page_folder_names = self._get_pages_names()
+
+        for page_folder_name, instance_locations, is_ready in \
+                zip(page_folder_names, instances_locations, ready_map):
+            self._save_page(instance_locations, pages_folder, page_folder_name, is_ready)
+
+        letters_folder.mkdir(parents=True)
+        for key, image in self._data_model.different_letters.data.items():
+            self.save_individual_images(image, key, letters_folder)
+
+    def _run_identification_train(self):
+        data_set_name = time.strftime("identification_dataset_%Y%m%d-%H%M%S")
+        new_dataset_path = TRAIN_DATA_PATH / data_set_name
+
+        letters_folder = new_dataset_path / 'letters_map'
         letter_images_folder = new_dataset_path / 'letter_images'
 
         ready_map = self._data_model.is_page_ready_map
@@ -159,14 +183,30 @@ class App:
 
         for page_path, page_folder_name, instance_locations, is_ready in \
                 zip(images_paths, page_folder_names, instances_locations, ready_map):
-            page_image = cv2.imread(str(page_path))
-            self._save_pages_letters(page_image, instance_locations, letter_images_folder, is_ready)
-            self._save_page(instance_locations, pages_folder, page_folder_name, is_ready)
+            if is_ready:
+                page_image = cv2.imread(str(page_path))
+                self._save_pages_letters(page_image, instance_locations, letter_images_folder, True)
 
         letters_folder.mkdir(parents=True)
         for key, image in self._data_model.different_letters.data.items():
             self.save_individual_images(image, key, letters_folder)
-        self._train_networks(data_set_name)
+
+        train_identifier(data_set_name)
+
+    def _run_detection_train(self):
+        data_set_name = time.strftime("detection_dataset_%Y%m%d-%H%M%S")
+        new_dataset_path = TRAIN_DATA_PATH / data_set_name
+        pages_folder = new_dataset_path / 'pages'
+
+        ready_map = self._data_model.is_page_ready_map
+        instances_locations = self._data_model.instances_locations_per_image
+        page_folder_names = self._get_pages_names()
+
+        for page_folder_name, instance_locations, is_ready in zip(page_folder_names, instances_locations, ready_map):
+            if is_ready:
+                self._save_page(instance_locations, pages_folder, page_folder_name, True)
+
+        train_detector(data_set_name)
 
     def _get_pages_names(self):
         return [page_path.with_suffix('').name for page_path in self._data_model.images_paths]
@@ -182,7 +222,7 @@ class App:
 
     @staticmethod
     def _save_page(instances_locations_by_letters: Dict, pages_folder: Path, page_folder_name: str, is_ready: bool):
-        path_to_save = (pages_folder if is_ready else pages_folder / 'WIP') / page_folder_name
+        path_to_save = pages_folder / page_folder_name
         path_to_save.mkdir(parents=True)
         image_to_index = {image: str(image) for i, image in enumerate(instances_locations_by_letters.keys())}
 
@@ -193,11 +233,13 @@ class App:
         with open(str(path_to_save / 'instances_locations_by_index.json'), 'w') as fp:
             json.dump(instances_locations_by_index, fp, indent=4)
 
+        with open(str(path_to_save / 'status.json'), 'w') as fp:
+            json.dump({'is_ready': is_ready}, fp, indent=4)
+
     @classmethod
     def save_individual_images(cls, letter_image, letter_location, letters_folder):
-        image_as_uint = letter_image
         file_name = letters_folder / '{}.jpg'.format(cls._key_to_str(letter_location))
-        cv2.imwrite(str(file_name), image_as_uint)
+        cv2.imwrite(str(file_name), letter_image)
 
     def _run_both_nets(self):
         self._detect_letters()

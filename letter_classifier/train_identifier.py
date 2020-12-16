@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
+from app.paths import TRAIN_DATA_PATH
 from app.tools import get_device
 from letter_classifier.mnist_like_net import Net
 
@@ -70,7 +71,7 @@ def run_train(data_set):
     network_path = Path('../networks') / 'identifier' / time.strftime("train_%Y%m%d-%H%M%S")
     network_path.mkdir(parents=True)
 
-    data_path = Path(r'../../data/annotations')
+    data_set_path = TRAIN_DATA_PATH / data_set
 
     transform = transforms.Compose([
         transforms.Resize((60, 60)),
@@ -79,13 +80,13 @@ def run_train(data_set):
         transforms.ToTensor(),
     ])
 
-    image_net_data = ImageFolder(data_path / data_set / 'letter_images', transform=transform)
+    image_net_data = ImageFolder(data_set_path / 'letter_images', transform=transform)
 
     number_of_classes = len(image_net_data.classes)
     with open(str(network_path / 'classes_map.json'), 'w') as state_file:
         json.dump({ind: class_name for ind, class_name in enumerate(image_net_data.classes)}, state_file)
 
-    shutil.copytree(str(data_path / data_set / 'letters_map'), str(network_path / 'letters_map'))
+    shutil.copytree(str(data_set_path / 'letters_map'), str(network_path / 'letters_map'))
     size = len(image_net_data)
     train_size = int(size * train_portion)
     train_set_data, test_set_data = torch.utils.data.random_split(image_net_data, [train_size, size-train_size])

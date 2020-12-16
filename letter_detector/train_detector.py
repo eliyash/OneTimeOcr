@@ -7,6 +7,7 @@ from torch import nn
 from torch.optim import lr_scheduler
 import time
 
+from app.paths import TRAIN_DATA_PATH, IMAGES_PATH
 from app.tools import get_device
 from letter_detector.dataset import CustomDataset
 from letter_detector.loss import Loss
@@ -15,12 +16,11 @@ from letter_detector.model import EAST
 BASIC_EAST_MODEL = '../networks/pretrained/east_vgg16.pth'
 
 
-def train(data_path: Path, data_set: str, train_portion: float, networks_path: Path,
+def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_path: Path,
           batch_size, lr, num_workers, number_of_epochs, minimal_improvement_for_save, start_net=None):
-    img_path = data_path / 'images'
-    gt_path = data_path / 'annotations' / data_set / 'pages'
+    gt_path = gt_data_path / 'pages'
     device = get_device()
-    data_set = CustomDataset(str(img_path), str(gt_path), duplicate_pages=batch_size)
+    data_set = CustomDataset(images_path, gt_path, duplicate_pages=batch_size)
 
     size = len(data_set)
     if size < 2 * batch_size:
@@ -110,10 +110,9 @@ def run_train(data_set):
     number_of_epochs = 20
     minimal_improve_to_save = 0
     network_path = Path('../networks') / 'detector' / time.strftime("train_%Y%m%d-%H%M%S")
-    data_path = Path(r'../../data')
     Path(network_path).mkdir(parents=True)
     train(
-        data_path, data_set, train_portion, network_path, batch_size, lr,
+        IMAGES_PATH, TRAIN_DATA_PATH / data_set, train_portion, network_path, batch_size, lr,
         num_workers, number_of_epochs, minimal_improve_to_save, start_net
     )
 

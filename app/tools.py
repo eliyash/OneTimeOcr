@@ -19,9 +19,12 @@ def two_points_combine(point_1, point_2, func):
     return tuple(map(lambda mn, val: func(mn, val), point_1, point_2))
 
 
+def point_abs(point):
+    return tuple(map(lambda x: abs(x), point))
+
+
 def box_margin_from_box_shape(box_shape):
-    box_margin = tuple(map(lambda x: x//2, box_shape))
-    return box_margin
+    return tuple(map(lambda x: x//2, box_shape))
 
 
 def points_accumulate(point_a, point_b, scale_b=1):
@@ -76,7 +79,9 @@ def str_to_location(location):
 
 
 def are_points_close(letter_location, location, dist):
-    return np.linalg.norm(np.array(location) - np.array(letter_location)) < dist
+    abs_diff = point_abs(points_sub(letter_location, location))
+    axis_margins = points_sub(dist, abs_diff)
+    return axis_margins[0] >= 0 and axis_margins[1] >= 0
 
 
 def is_different_values_preset(old: Dict, new: Dict) -> bool:

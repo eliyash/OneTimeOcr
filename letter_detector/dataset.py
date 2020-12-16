@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import cv2
 from PIL import Image
@@ -327,27 +329,25 @@ def get_score_geo(img, vertices, labels, scale, length):
 
 
 class CustomDataset(data.Dataset):
-	def __init__(self, img_path, gt_path, scale=0.25, length=128, duplicate_pages=1):
+	def __init__(self, img_path: Path, gt_path: Path, scale=0.25, length=128, duplicate_pages=1):
 		super(CustomDataset, self).__init__()
-		self.letter_shape = get_data_params_from_file(img_path.parent)[0]
-		gt_file_names = list(filter(lambda x: x != 'WIP', sorted(os.listdir(gt_path))))
-		gt_file_names = [file for file in gt_file_names]
-		self.gt_files = [os.path.join(gt_path, gt_file, 'instances_locations_by_index.json') for gt_file in gt_file_names for _ in range(duplicate_pages)]
-		self.img_files = [
-			os.path.join(img_path, img_file)
-			for img_file in os.listdir(img_path)
-			for _ in range(duplicate_pages)
-			if os.path.splitext(img_file)[0] in gt_file_names
+		self.letter_shape = get_data_params_from_file(img_path.parent)['letter_shape']
+		self.matching_image_gt_files = [
+			{
+				'gt': gt_file / 'instances_locations_by_index.json',
+				'image': next(filter(lambda path: path.name.startswith(gt_file.name), img_path.iterdir()))
+			}
+			for gt_file in gt_path.iterdir() for _ in range(duplicate_pages)
 		]
 		self.scale = scale
 		self.length = length
 
 	def __len__(self):
-		return len(self.img_files)
+		return len(self.matching_image_gt_files)
 
 	def __getitem__(self, index):
-		vertices, labels = create_data(self.gt_files[index], self.letter_shape)
-		img = Image.open(self.img_files[index])
+		vertices, labels = create_data(self.matching_image_gt_files[index]['gt'], self.letter_shape)
+		img = Image.open(self.matching_image_gt_files[index]['image'])
 		img, vertices = adjust_height(img, vertices)
 		img, vertices = rotate_img(img, vertices)
 		img, vertices = crop_img(img, vertices, labels, self.length)
