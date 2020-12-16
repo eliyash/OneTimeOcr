@@ -12,6 +12,7 @@ from typing import Tuple, Dict, Union
 from concurrent.futures.thread import ThreadPoolExecutor
 from app.data_model import DataModel
 from app.main_window import MainWindow
+from app.observers import Subject
 from app.special_values import MAX_LETTER_INCIDENTS, UNKNOWN_KEY
 from app.paths import IMAGES_PATH, LETTERS_PATH, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH, TRAIN_DATA_PATH
 from app.tools import are_points_close, union_notifier_and_dict_values, union_notifier_and_dict_sets, \
@@ -43,11 +44,13 @@ class App:
         params = get_data_params_from_file(Path('./'))
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._data_model = DataModel(IMAGES_PATH)
+        self._train_status = Subject()
 
         list_of_buttons_and_indicators = [
             (True, ('<', lambda: self._page_move(back=True))),
             (False, ('Page', self._data_model.page)),
             (True, ('>', self._page_move)),
+            (False, ('    Status', self._train_status))
         ]
 
         menu_values = {
@@ -79,6 +82,10 @@ class App:
         )
         self._data_model.page.data = 0
         self._data_model.different_letters.data = {UNKNOWN_KEY: get_unknown_key_image(self._data_model.letter_shape)}
+        self._set_system_status('idle')
+
+    def _set_system_status(self, status: str):
+        self._train_status.data = status
 
     def _wrap_to_executor(self, func):
         def func_with_exception(*args, **kwargs):
@@ -170,6 +177,7 @@ class App:
             self.save_individual_images(image, key, letters_folder)
 
     def _run_identification_train(self):
+        self._set_system_status('preparing for identify train')
         data_set_name = time.strftime("identification_dataset_%Y%m%d-%H%M%S")
         new_dataset_path = TRAIN_DATA_PATH / data_set_name
 
@@ -191,9 +199,12 @@ class App:
         for key, image in self._data_model.different_letters.data.items():
             self.save_individual_images(image, key, letters_folder)
 
+        self._set_system_status('training identification')
         train_identifier(data_set_name)
+        self._set_system_status('idle')
 
     def _run_detection_train(self):
+        self._set_system_status('preparing for detection train')
         data_set_name = time.strftime("detection_dataset_%Y%m%d-%H%M%S")
         new_dataset_path = TRAIN_DATA_PATH / data_set_name
         pages_folder = new_dataset_path / 'pages'
@@ -206,7 +217,9 @@ class App:
             if is_ready:
                 self._save_page(instance_locations, pages_folder, page_folder_name, True)
 
+        self._set_system_status('training detection')
         train_detector(data_set_name)
+        self._set_system_status('idle')
 
     def _get_pages_names(self):
         return [page_path.with_suffix('').name for page_path in self._data_model.images_paths]
