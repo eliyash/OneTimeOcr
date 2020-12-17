@@ -46,7 +46,9 @@ class LettersInPageHandler:
         to_remove, to_add = get_values_to_add_and_remove(self._letters_markers_managers, new_main_letters)
         [self._letters_markers_managers.pop(letter_to_remove) for letter_to_remove in to_remove]
         for letter_to_add in to_add:
-            marker_drawer = SimpleMarkerDrawer(self._canvas, self._get_random_color(), letter_shape, self._translator)
+            marker_drawer = SimpleMarkerDrawer(
+                self._view_model, self._canvas, self._get_random_color(), letter_shape, self._translator
+            )
             self._letters_markers_managers[letter_to_add] = marker_drawer
 
     def set_marker_managers_for_duplicates(self, locations_dict):

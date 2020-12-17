@@ -108,14 +108,15 @@ class MainWindow:
             self._canvas.delete(self._canvas_image)
         new_pil_image = self._view_model.data_model.pil_image
         self._translation = ZERO_X_Y
-        self._current_page_view_shape = two_points_min(new_pil_image.size, self._page_max_view_shape)
+        current_page_view_shape = two_points_min(new_pil_image.size, self._page_max_view_shape)
+        self._view_model.current_page_view_shape = current_page_view_shape
 
         tk_letter_image = ImageTk.PhotoImage(new_pil_image)
         self._canvas.image = tk_letter_image
         self._canvas_image = self._canvas.create_image(0, 0, image=tk_letter_image, anchor=tk.NW)
-        self._canvas.config(width=self._current_page_view_shape[0], height=self._current_page_view_shape[1])
+        self._canvas.config(width=current_page_view_shape[0], height=current_page_view_shape[1])
 
-        purple_box_lines_x_y = box_lines_from_center(box_margin_from_box_shape(self._current_page_view_shape), (4, 4))
+        purple_box_lines_x_y = box_lines_from_center(box_margin_from_box_shape(current_page_view_shape), (4, 4))
         self._canvas.create_rectangle(*purple_box_lines_x_y, tags=('center',), outline='purple', width=5)
         self._view_model.data_model.reset_data()
         self._is_page_ready.set(self._view_model.data_model.is_page_ready_map[page])
@@ -182,10 +183,10 @@ class MainWindow:
         page_size = self._view_model.data_model.pil_image.size
         point = (event.x, event.y)
 
-        canvas_center = box_margin_from_box_shape(self._current_page_view_shape)
+        canvas_center = box_margin_from_box_shape(self._view_model.current_page_view_shape)
         new_translation = self._translator(points_sub(point, canvas_center))
 
-        max_moves = points_sub(page_size, self._current_page_view_shape)
+        max_moves = points_sub(page_size, self._view_model.current_page_view_shape)
         new_translation = two_points_max(new_translation, ZERO_X_Y)
         new_translation = two_points_min(new_translation, max_moves)
 
