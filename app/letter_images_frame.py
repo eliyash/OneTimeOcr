@@ -32,12 +32,14 @@ class LettersImagesFrame:
         new_location_duplicates = set(new_location_duplicates)
         for key_to_add in new_location_duplicates - current_location_duplicates:
             cv_letter_image = self._get_image_patch(key_to_add)
-            if len(cv_letter_image.shape) == 3:
-                cv_letter_image = np.mean(cv_letter_image, axis=2)
-            label = tk.Label(self._currentFrame)
-            self._set_actions(label, key_to_add)
-            self._map_keys_by_widgets[label] = key_to_add
-            self._map_widget_and_image_by_keys[key_to_add] = label, cv_letter_image.astype('double')
+            # hack for handling out of image locations, I think..
+            if cv_letter_image.any():
+                if len(cv_letter_image.shape) == 3:
+                    cv_letter_image = np.mean(cv_letter_image, axis=2)
+                label = tk.Label(self._currentFrame)
+                self._set_actions(label, key_to_add)
+                self._map_keys_by_widgets[label] = key_to_add
+                self._map_widget_and_image_by_keys[key_to_add] = label, cv_letter_image.astype('double')
         for key_to_remove in current_location_duplicates - new_location_duplicates:
             label, _ = self._map_widget_and_image_by_keys.pop(key_to_remove)
             self._map_keys_by_widgets.pop(label)
