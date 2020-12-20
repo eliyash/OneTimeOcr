@@ -71,13 +71,6 @@ def location_to_str(location):
         return location
 
 
-def str_to_location(location):
-    if location != UNKNOWN_KEY:
-        return tuple(map(int, location.split('_')))
-    else:
-        return location
-
-
 def are_points_close(letter_location, location, dist):
     abs_diff = point_abs(points_sub(letter_location, location))
     axis_margins = points_sub(dist, abs_diff)
@@ -99,8 +92,8 @@ def get_device():
     return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def file_name_to_location(file_name):
-    return str_to_location(file_name.name.split('.')[0])
+def file_name_to_key(file_name):
+    return file_name.name.split('.')[0]
 
 
 def is_non_last_net(path: Path):

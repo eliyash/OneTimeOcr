@@ -11,7 +11,7 @@ from PIL import Image
 from torch.autograd import Variable
 from torchvision.transforms import transforms
 from letter_classifier.mnist_like_net import Net
-from app.tools import str_to_location, file_name_to_location, get_last_epoch_net, get_device, box_lines_from_center
+from app.tools import file_name_to_key, get_last_epoch_net, get_device, box_lines_from_center
 
 
 def image_loader(loader, image):
@@ -52,10 +52,9 @@ def identify_letters(image_path: str, locations, network_path: Path, image_shape
     with open(str(network_path / 'classes_map.json'), 'r') as state_file:
         classes_map = json.load(state_file)
 
-    letter_to_location_dict = {str_to_location(classes_map[str(key)]): value
-                               for key, value in class_to_location_dict.items()}
+    letter_to_location_dict = {classes_map[str(key)]: value for key, value in class_to_location_dict.items()}
 
-    letters_map = {file_name_to_location(letter_file): cv2.imread(str(letter_file))
+    letters_map = {file_name_to_key(letter_file): cv2.imread(str(letter_file))
                    for letter_file in (network_path / 'letters_map').iterdir()}
 
     return dict(letter_to_location_dict), letters_map

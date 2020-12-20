@@ -16,7 +16,7 @@ from app.observers import Subject
 from app.special_values import MAX_LETTER_INCIDENTS, UNKNOWN_KEY
 from app.paths import IMAGES_PATH, LETTERS_PATH, IDENTIFIER_NETS_PATH, DETECTOR_NETS_PATH, TRAIN_DATA_PATH
 from app.tools import are_points_close, union_notifier_and_dict_values, union_notifier_and_dict_sets, \
-    get_unknown_key_image, box_lines_from_center, get_box_center, get_data_params_from_file
+    get_unknown_key_image, box_lines_from_center, get_box_center, get_data_params_from_file, file_name_to_key
 from letter_classifier.identify_letter import identify_letters
 from letter_classifier.train_identifier import run_train as train_identifier
 from letter_detector.train_detector import run_train as train_detector
@@ -134,10 +134,6 @@ class App:
         self._wrap_to_executor(lambda: self._load_data(data_set_name))()
 
     @staticmethod
-    def _file_location_name(file_path: Path):
-        return file_path.name.split('.')[0]
-
-    @staticmethod
     def _str_to_key(key: str):
         if key == UNKNOWN_KEY:
             return UNKNOWN_KEY
@@ -159,7 +155,7 @@ class App:
         letters_folder = dataset_path / 'letters_map'
 
         self._data_model.different_letters.data = {
-            self._file_location_name(key_path): cv2.imread(str(key_path)) for key_path in letters_folder.iterdir()
+            file_name_to_key(key_path): cv2.imread(str(key_path)) for key_path in letters_folder.iterdir()
         }
         self._data_model.current_page = None
 
