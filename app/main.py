@@ -86,6 +86,7 @@ class App:
 
     def _set_system_status(self, status: str):
         self._train_status.data = status
+        logger.info('status update: '.format(status))
 
     def _wrap_to_executor(self, func):
         def func_with_exception(*args, **kwargs):
@@ -268,25 +269,25 @@ class App:
 
     def _detect_letters(self):
         detector_path = max(DETECTOR_NETS_PATH.iterdir(), key=lambda x: x.name)
-        logger.info('detecting letters...')
+        self._set_system_status('detecting letters')
         found_locations = detect_letters(self._data_model.image_path, detector_path)
-        logger.info('letters detected')
+        self._set_system_status('letters detected')
         new_values_dict = {UNKNOWN_KEY: found_locations}
         union_notifier_and_dict_sets(self._data_model.instances_locations_by_letters, new_values_dict)
-        logger.info('detection done')
+        self._set_system_status('detection done')
 
     def _identify_letters(self):
         identifier_path = max(IDENTIFIER_NETS_PATH.iterdir(), key=lambda x: x.name)
-        logger.info('identifying letters...')
+        self._set_system_status('identifying letters')
         unknown_locations = self._data_model.instances_locations_by_letters.data[UNKNOWN_KEY]
         locations_dict, letters_map = identify_letters(
             self._data_model.image_path, unknown_locations, identifier_path, self._data_model.letter_shape
         )
-        logger.info('letters identified')
+        self._set_system_status('letters identified')
         union_notifier_and_dict_values(self._data_model.different_letters, letters_map)
         self._set_duplicate_letters(UNKNOWN_KEY, set())
         union_notifier_and_dict_sets(self._data_model.instances_locations_by_letters, locations_dict)
-        logger.info('identification done')
+        self._set_system_status('identification done')
 
     def _get_tessarect_page_letters(self):
         cv_image = np.array(self._data_model.pil_image)
