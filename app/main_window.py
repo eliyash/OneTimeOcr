@@ -169,7 +169,7 @@ class MainWindow:
 
     def _on_mouse_press_right(self, event):
         location = self._translator((event.x, event.y))
-        self._main_letters_handler.add_main_letter(location)
+        self._main_letters_handler.add_main_letter(location + (self._view_model.data_model.page.data,))
 
     # TODO: support removing from screen?
     # def _on_mouse_press_delete(self, event):

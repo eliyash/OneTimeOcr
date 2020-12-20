@@ -8,7 +8,7 @@ from collections import defaultdict
 import cv2
 import numpy as np
 from pathlib import Path
-from typing import Tuple, Dict, Union
+from typing import Tuple, Dict
 from concurrent.futures.thread import ThreadPoolExecutor
 from app.data_model import DataModel
 from app.main_window import MainWindow
@@ -105,13 +105,6 @@ class App:
         letter_image = np.array(image)[y_start: y_stop, x_start: x_stop]
         return letter_image
 
-    @staticmethod
-    def _key_to_str(key: Union[Tuple, str]):
-        if type(key) is tuple:
-            return '_'.join([str(i) for i in key])
-        else:
-            return key
-
     @classmethod
     def _train_networks_last_dataset(cls):
         last_data_set = sorted(os.listdir('../data/annotations'))[-1]
@@ -139,23 +132,46 @@ class App:
         data_set_name = self._gui.get_folder(LETTERS_PATH, 'select dataset').name
         self._wrap_to_executor(lambda: self._load_data(data_set_name))()
 
+    @staticmethod
+    def _file_location_name(file_path: Path):
+        return file_path.name.split('.')[0]
+
+    @staticmethod
+    def _str_to_key(key: str):
+        if key == UNKNOWN_KEY:
+            return UNKNOWN_KEY
+        else:
+            return tuple(json.loads(key))
+
+    def _get_pages_names(self):
+        return [page_path.with_suffix('').name for page_path in self._data_model.images_paths]
+
+    @classmethod
+    def _save_individual_images(cls, letter_image, letter_location, letters_folder):
+        file_name = letters_folder / '{}.jpg'.format(letter_location)
+        cv2.imwrite(str(file_name), letter_image)
+
     def _load_data(self, data_set_name):
         dataset_path = LETTERS_PATH / data_set_name
 
         pages_folder = dataset_path / 'pages'
         letters_folder = dataset_path / 'letters_map'
 
-        key_image_dict = {key_path.name: cv2.imread(str(key_path)) for key_path in letters_folder.iterdir()}
-        self._data_model.page._subject_state = None
-        self._data_model.different_letters.data = key_image_dict
+        self._data_model.different_letters.data = {
+            self._file_location_name(key_path): cv2.imread(str(key_path)) for key_path in letters_folder.iterdir()
+        }
+        self._data_model.current_page = None
 
         page_folder_names = self._get_pages_names()
         for key_path in pages_folder.iterdir():
             page = page_folder_names.index(key_path.name)
             with open(str(key_path / 'instances_locations_by_index.json')) as location_dict_file:
-                self._data_model.instances_locations_per_image[page] = json.load(location_dict_file)
+                dict_with_lists = json.load(location_dict_file)
+                instances_locations_of_page = {k: set(map(tuple, vs_list)) for k, vs_list in dict_with_lists.items()}
+                self._data_model.instances_locations_per_image[page] = instances_locations_of_page
             with open(str(key_path / 'status.json')) as status_dict_file:
                 self._data_model.is_page_ready_map[page] = json.load(status_dict_file)['is_ready']
+        self._data_model.page.data = 0
 
     def _on_save_data(self):
         data_set_name = time.strftime("dataset_%Y%m%d-%H%M%S")
@@ -174,7 +190,32 @@ class App:
 
         letters_folder.mkdir(parents=True)
         for key, image in self._data_model.different_letters.data.items():
-            self.save_individual_images(image, key, letters_folder)
+            self._save_individual_images(image, key, letters_folder)
+
+    def _save_pages_letters(self, page: np.ndarray, instances_locations: Dict, letters_folder: Path):
+        for key, duplicate_letters in instances_locations.items():
+            main_letter_folder = letters_folder / key
+            main_letter_folder.mkdir(parents=True, exist_ok=True)
+            for letter_location in duplicate_letters:
+                letter_image = self._get_image_patch(page, letter_location)
+                self._save_individual_images(letter_image, letter_location, main_letter_folder)
+
+    @staticmethod
+    def _save_page(instances_locations_by_letters: Dict, pages_folder: Path, page_folder_name: str, is_ready: bool):
+        path_to_save = pages_folder / page_folder_name
+        path_to_save.mkdir(parents=True)
+        image_to_index = {image: str(image) for i, image in enumerate(instances_locations_by_letters.keys())}
+
+        instances_locations_by_index = {
+            image_to_index[image]: list(map(lambda x: list(map(int, x)), locations))
+            for image, locations in instances_locations_by_letters.items()
+        }
+
+        with open(str(path_to_save / 'instances_locations_by_index.json'), 'w') as fp:
+            json.dump(instances_locations_by_index, fp, indent=4)
+
+        with open(str(path_to_save / 'status.json'), 'w') as fp:
+            json.dump({'is_ready': is_ready}, fp, indent=4)
 
     def _run_identification_train(self):
         self._set_system_status('preparing for identify train')
@@ -193,11 +234,11 @@ class App:
                 zip(images_paths, page_folder_names, instances_locations, ready_map):
             if is_ready:
                 page_image = cv2.imread(str(page_path))
-                self._save_pages_letters(page_image, instance_locations, letter_images_folder, True)
+                self._save_pages_letters(page_image, instance_locations, letter_images_folder)
 
         letters_folder.mkdir(parents=True)
         for key, image in self._data_model.different_letters.data.items():
-            self.save_individual_images(image, key, letters_folder)
+            self._save_individual_images(image, key, letters_folder)
 
         self._set_system_status('training identification')
         train_identifier(data_set_name)
@@ -220,39 +261,6 @@ class App:
         self._set_system_status('training detection')
         train_detector(data_set_name)
         self._set_system_status('idle')
-
-    def _get_pages_names(self):
-        return [page_path.with_suffix('').name for page_path in self._data_model.images_paths]
-
-    def _save_pages_letters(self, page: np.ndarray, instances_locations: Dict, letters_folder: Path, is_ready: bool):
-        letters_folder = letters_folder if is_ready else letters_folder / 'WIP'
-        for key, duplicate_letters in instances_locations.items():
-            main_letter_folder = letters_folder / self._key_to_str(key)
-            main_letter_folder.mkdir(parents=True, exist_ok=True)
-            for letter_location in duplicate_letters:
-                letter_image = self._get_image_patch(page, letter_location)
-                self.save_individual_images(letter_image, letter_location, main_letter_folder)
-
-    @staticmethod
-    def _save_page(instances_locations_by_letters: Dict, pages_folder: Path, page_folder_name: str, is_ready: bool):
-        path_to_save = pages_folder / page_folder_name
-        path_to_save.mkdir(parents=True)
-        image_to_index = {image: str(image) for i, image in enumerate(instances_locations_by_letters.keys())}
-
-        instances_locations_by_index = {
-            image_to_index[image]: list(map(lambda x: list(map(int, x)), locations))
-            for image, locations in instances_locations_by_letters.items()
-        }
-        with open(str(path_to_save / 'instances_locations_by_index.json'), 'w') as fp:
-            json.dump(instances_locations_by_index, fp, indent=4)
-
-        with open(str(path_to_save / 'status.json'), 'w') as fp:
-            json.dump({'is_ready': is_ready}, fp, indent=4)
-
-    @classmethod
-    def save_individual_images(cls, letter_image, letter_location, letters_folder):
-        file_name = letters_folder / '{}.jpg'.format(cls._key_to_str(letter_location))
-        cv2.imwrite(str(file_name), letter_image)
 
     def _run_both_nets(self):
         self._detect_letters()
