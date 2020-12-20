@@ -274,7 +274,7 @@ class App:
         self._set_system_status('letters detected')
         new_values_dict = {UNKNOWN_KEY: found_locations}
         union_notifier_and_dict_sets(self._data_model.instances_locations_by_letters, new_values_dict)
-        self._set_system_status('detection done')
+        self._set_system_status('idle')
 
     def _identify_letters(self):
         identifier_path = max(IDENTIFIER_NETS_PATH.iterdir(), key=lambda x: x.name)
@@ -287,7 +287,7 @@ class App:
         union_notifier_and_dict_values(self._data_model.different_letters, letters_map)
         self._set_duplicate_letters(UNKNOWN_KEY, set())
         union_notifier_and_dict_sets(self._data_model.instances_locations_by_letters, locations_dict)
-        self._set_system_status('identification done')
+        self._set_system_status('idle')
 
     def _get_tessarect_page_letters(self):
         cv_image = np.array(self._data_model.pil_image)
