@@ -86,7 +86,7 @@ class App:
 
     def _set_system_status(self, status: str):
         self._train_status.data = status
-        logger.info('status update: '.format(status))
+        logger.info('status update: {}'.format(status))
 
     def _wrap_to_executor(self, func):
         def func_with_exception(*args, **kwargs):
@@ -234,8 +234,7 @@ class App:
         for page_path, page_folder_name, instance_locations, is_ready in \
                 zip(images_paths, page_folder_names, instances_locations, ready_map):
             if is_ready:
-                page_image = cv2.imread(str(page_path))
-                self._save_pages_letters(page_image, instance_locations, letter_images_folder)
+                self._save_pages_letters(cv2.imread(str(page_path)), instance_locations, letter_images_folder)
 
         letters_folder.mkdir(parents=True)
         for key, image in self._data_model.different_letters.data.items():

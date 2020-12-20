@@ -11,7 +11,7 @@ from app.letter_images_frame import MainLettersScreen, DuplicateLettersFrame
 from app.letters_in_page_handler import LettersInPageHandler
 from app.special_values import NUM_OF_LETTERS, ZERO_X_Y, UNKNOWN_KEY, PAD_X
 from app.tools import points_accumulate, points_sub, box_lines_from_center, two_points_min, two_points_max, \
-    box_margin_from_box_shape
+    box_margin_from_box_shape, are_points_close
 
 
 class MainWindow:
@@ -80,6 +80,16 @@ class MainWindow:
         self._canvas.bind("<Button-1>", self._on_mouse_press_left)
         self._canvas.bind("<Button-2>", self._on_mouse_press_wheel)
         self._canvas.bind("<Button-3>", self._on_mouse_press_right)
+
+        self._is_ctrl = False
+
+        def keypress(event):
+            self._is_ctrl = event.keysym.startswith('Control')
+        self._window.bind("<Key>", keypress)
+
+        def keypress_r(_):
+            self._is_ctrl = False
+        self._window.bind("<KeyRelease>", keypress_r)
 
         self._main_letters_handler = LettersInPageHandler(
             self._view_model, self._run_gui_action, self._canvas, self._get_letter_patch, self._translator
@@ -161,23 +171,30 @@ class MainWindow:
 
     def _on_mouse_press_left(self, event):
         location = self._translator((event.x, event.y))
+        if self._is_ctrl:
+            self._on_add_new_main_letter(location)
+        else:
+            self._on_add_duplicate_letter(location)
+
+    def _on_add_duplicate_letter(self, location):
         if not self._view_model.current_chosen_letter.data:
             self._main_letters_handler.add_main_letter(UNKNOWN_KEY)
             self._view_model.current_chosen_letter.data = UNKNOWN_KEY
-
         self._main_letters_handler.add_dup_letter(self._view_model.current_chosen_letter.data, location)
+
+    def _on_add_new_main_letter(self, location):
+        self._main_letters_handler.add_main_letter(location + (self._view_model.data_model.page.data,))
 
     def _on_mouse_press_right(self, event):
         location = self._translator((event.x, event.y))
-        self._main_letters_handler.add_main_letter(location + (self._view_model.data_model.page.data,))
-
-    # TODO: support removing from screen?
-    # def _on_mouse_press_delete(self, event):
-        # instances_locations_by_letters = self._view_model.data_model.instances_locations_by_letters.data
-        # for letter_location in list(instances_locations_by_letters.keys()):
-        #     if are_points_close(letter_location, location):
-        #         instances_locations_by_letters.pop(letter_location)
-        # self._view_model.data_model.instances_locations_by_letters.data = instances_locations_by_letters
+        dist = box_margin_from_box_shape(self._view_model.data_model.letter_shape)
+        instances_locations_by_letters = self._view_model.data_model.instances_locations_by_letters.data
+        for letter_location in instances_locations_by_letters.keys():
+            set_of_duplicates = instances_locations_by_letters[letter_location]
+            for center in set_of_duplicates.copy():
+                if are_points_close(center, location, dist):
+                    set_of_duplicates.remove(center)
+        self._view_model.data_model.instances_locations_by_letters.data = instances_locations_by_letters
 
     def _on_mouse_press_wheel(self, event):
         page_size = self._view_model.data_model.pil_image.size

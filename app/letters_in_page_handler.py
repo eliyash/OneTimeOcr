@@ -30,11 +30,16 @@ class LettersInPageHandler:
         return '#' + ''.join(['{:02x}'.format(random.randint(0, 255)) for _ in range(3)])
 
     def add_main_letter(self, location):
+        image = self._get_image_patch(location)
+        if location == UNKNOWN_KEY:
+            key_name = UNKNOWN_KEY
+        else:
+            key_name = str(location)
         data = self._view_model.data_model.different_letters.data
-        data[location] = self._get_image_patch(location)
+        data[key_name] = image
         self._view_model.data_model.different_letters.data = data
-        if location != UNKNOWN_KEY:
-            self.add_dup_letter(location, location)
+        if key_name != UNKNOWN_KEY:
+            self.add_dup_letter(key_name, location)
 
     def add_dup_letter(self, key, location):
         data = self._view_model.data_model.instances_locations_by_letters.data
