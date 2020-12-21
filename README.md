@@ -13,20 +13,16 @@ will be done on the current dataset (i.e. first pages of a book)
 ## Todo's by categories (some are optional)
 ### App
 * improve mvc
-* add loading data set
-* add support for moving / removing letters
+* add support for moving letters
 * support marking just part of page
 * add visualization for training and inference process
-* support different boxes sizes
 * add duplication detection
-* add support for running tessarect
   
 ### DeepLearning
 #### _General_
 * chose wisely networks
 * add gt page visualization (boxes as image)
 #### _Detector net_
-* make test data consistent
 * ignore misses and false of lettres detection in boundary
 #### _Identifier net_
 * split letters by logic in train

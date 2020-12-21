@@ -32,9 +32,11 @@ def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_
     train_loader = data.DataLoader(
         train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True
     )
-    test_loader = data.DataLoader(
+    test_loader_dynamic = data.DataLoader(
         test_set, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True
     )
+    iterator = iter(test_loader_dynamic)
+    test_loader = [next(iterator) for _ in range(len(test_loader_dynamic))]
 
     file_num = len(train_set)
 
