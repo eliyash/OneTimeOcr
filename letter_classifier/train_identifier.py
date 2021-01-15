@@ -121,7 +121,9 @@ def run_train(
             torch.save(model, str(network_path / 'epoch_{}.pth'.format(epoch)))
             with open(str(network_path / 'state.json'), 'w') as state_file:
                 json.dump({'loss': best_test_loss}, state_file)
-        set_new_train_fig(test_losses_by_epochs, train_losses_by_epochs)
+
+        if set_new_train_fig:
+            set_new_train_fig(test_losses_by_epochs, train_losses_by_epochs)
 
     torch.save(model, str(network_path / 'last_net.pth'))
 

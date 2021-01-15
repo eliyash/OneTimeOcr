@@ -255,7 +255,7 @@ class App:
                 self._save_page(instance_locations, pages_folder, page_folder_name, True)
 
         self._set_system_status('training detection')
-        train_detector(data_set_name)
+        train_detector(data_set_name, set_new_train_fig=self._gui.run_on_gui_thread(self._gui.set_new_train_fig))
         self._set_system_status('idle')
 
     def _run_both_nets(self):

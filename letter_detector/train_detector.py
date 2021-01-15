@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Callable
 
 import torch
 from torch.utils import data
@@ -18,8 +19,8 @@ DEFAULT_NUMBER_OF_EPOCHS = 20
 DEFAULT_LEARNING_RATE = 1e-3
 
 
-def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_path: Path,
-          batch_size, lr, num_workers, number_of_epochs, minimal_improvement_for_save, start_net=None):
+def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_path: Path, batch_size, lr, num_workers,
+          number_of_epochs, minimal_improvement_for_save, start_net=None, set_new_train_fig: Callable = None):
     gt_path = gt_data_path / 'pages'
     device = get_device()
     data_set = CustomDataset(images_path, gt_path, duplicate_pages=batch_size)
@@ -56,16 +57,19 @@ def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[number_of_epochs // 2], gamma=0.1)
 
+    train_losses_by_epochs = []
+    test_losses_by_epochs = []
+
     best_training_loss = None
     for epoch in range(number_of_epochs):
         model.train()
         scheduler.step(epoch)
-        epoch_loss = 0
+        train_loss = 0
         epoch_time = time.time()
         for i, (img, gt_score, gt_geo, ignored_map) in enumerate(train_loader):
             start_time = time.time()
             loss = calc_loss_on_net(criterion, device, gt_geo, gt_score, ignored_map, img, model)
-            epoch_loss += loss.item()
+            train_loss += loss.item()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -81,8 +85,11 @@ def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_
                 loss = calc_loss_on_net(criterion, device, gt_geo, gt_score, ignored_map, img, model)
                 test_loss += loss.item()
 
-        print('test_loss is {:.8f}, epoch_loss is {:.8f}, epoch_time is {:.8f}'.format(
-            test_loss / int(file_num / batch_size), epoch_loss / int(file_num / batch_size), time.time() - epoch_time)
+        train_losses_by_epochs.append(train_loss)
+        test_losses_by_epochs.append(test_loss)
+
+        print('test_loss is {:.8f}, train_loss is {:.8f}, epoch_time is {:.8f}'.format(
+            test_loss / int(file_num / batch_size), train_loss / int(file_num / batch_size), time.time() - epoch_time)
         )
         print(time.asctime(time.localtime(time.time())))
         if best_training_loss is None or test_loss < (best_training_loss - minimal_improvement_for_save):
@@ -95,6 +102,9 @@ def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_
                 json.dump({'loss': best_training_loss}, state_file)
         print('=' * 80)
 
+        if set_new_train_fig:
+            set_new_train_fig(test_losses_by_epochs, train_losses_by_epochs)
+
 
 def calc_loss_on_net(criterion, device, gt_geo, gt_score, ignored_map, img, model):
     img, gt_score, gt_geo, ignored_map = \
@@ -104,7 +114,11 @@ def calc_loss_on_net(criterion, device, gt_geo, gt_score, ignored_map, img, mode
     return loss
 
 
-def run_train(data_set, number_of_epochs=DEFAULT_NUMBER_OF_EPOCHS, lr=DEFAULT_LEARNING_RATE):
+def run_train(
+        data_set,
+        number_of_epochs=DEFAULT_NUMBER_OF_EPOCHS,
+        lr=DEFAULT_LEARNING_RATE,
+        set_new_train_fig: Callable = None):
     torch.manual_seed(1)
     train_portion = 0.5
     start_net = BASIC_EAST_MODEL
@@ -115,7 +129,7 @@ def run_train(data_set, number_of_epochs=DEFAULT_NUMBER_OF_EPOCHS, lr=DEFAULT_LE
     Path(network_path).mkdir(parents=True)
     train(
         IMAGES_PATH, TRAIN_DATA_PATH / data_set, train_portion, network_path, batch_size, lr,
-        num_workers, number_of_epochs, minimal_improve_to_save, start_net
+        num_workers, number_of_epochs, minimal_improve_to_save, start_net, set_new_train_fig
     )
 
 
