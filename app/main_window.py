@@ -81,7 +81,6 @@ class MainWindow:
 
         self._train_canvas = FigureCanvasTkAgg(self._fig, master=self._train_frame)
         self._train_canvas.get_tk_widget().pack()
-        self._train_canvas.draw()
 
         self._data_frame.add(self._text_frame, text='Page')
         self._data_frame.add(self._duplicates_letters_frame, text='Letters')
@@ -137,12 +136,12 @@ class MainWindow:
     def run_on_gui_thread(self, func):
         return lambda *args, **kwargs: self._gui_tread_queue.put(lambda: func(*args, **kwargs))
 
-    def set_new_train_fig(self, test_losses_by_epochs, train_losses_by_epochs):
+    def set_new_train_fig(self, test_losses_by_epochs, train_losses_by_epochs, title):
         x = range(len(train_losses_by_epochs))
         self._subplot.clear()
         self._subplot.set_xlabel('epoch', fontsize=12)
         self._subplot.set_ylabel('loss', fontsize=12)
-        self._subplot.set_title("Losses")
+        self._subplot.set_title(title)
         self._subplot.plot(x, train_losses_by_epochs, 'b', x, test_losses_by_epochs, 'r')
         self._train_canvas.draw()
 

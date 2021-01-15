@@ -3,7 +3,6 @@ from __future__ import print_function
 import json
 import shutil
 import time
-from pathlib import Path
 from typing import Callable
 
 import cv2
@@ -14,7 +13,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
-from app.paths import TRAIN_DATA_PATH
+from app.paths import TRAIN_DATA_PATH, IDENTIFIER_NETS_PATH
 from app.tools import get_device
 from letter_classifier.mnist_like_net import Net
 
@@ -79,7 +78,7 @@ def run_train(
 
     train_portion = 0.7
     batch = 8
-    network_path = Path('../networks') / 'identifier' / time.strftime("train_%Y%m%d-%H%M%S")
+    network_path = IDENTIFIER_NETS_PATH / time.strftime("train_%Y%m%d-%H%M%S")
     network_path.mkdir(parents=True)
 
     data_set_path = TRAIN_DATA_PATH / data_set
@@ -123,7 +122,7 @@ def run_train(
                 json.dump({'loss': best_test_loss}, state_file)
 
         if set_new_train_fig:
-            set_new_train_fig(test_losses_by_epochs, train_losses_by_epochs)
+            set_new_train_fig(test_losses_by_epochs, train_losses_by_epochs, 'Letter Identifier Loss')
 
     torch.save(model, str(network_path / 'last_net.pth'))
 

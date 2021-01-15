@@ -8,7 +8,7 @@ from torch import nn
 from torch.optim import lr_scheduler
 import time
 
-from app.paths import TRAIN_DATA_PATH, IMAGES_PATH
+from app.paths import TRAIN_DATA_PATH, IMAGES_PATH, DETECTOR_NETS_PATH
 from app.tools import get_device
 from letter_detector.dataset import CustomDataset
 from letter_detector.loss import Loss
@@ -103,7 +103,7 @@ def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_
         print('=' * 80)
 
         if set_new_train_fig:
-            set_new_train_fig(test_losses_by_epochs, train_losses_by_epochs)
+            set_new_train_fig(test_losses_by_epochs, train_losses_by_epochs, 'Letter Detector Loss')
 
 
 def calc_loss_on_net(criterion, device, gt_geo, gt_score, ignored_map, img, model):
@@ -125,7 +125,7 @@ def run_train(
     batch_size = 4
     num_workers = 4
     minimal_improve_to_save = 0
-    network_path = Path('../networks') / 'detector' / time.strftime("train_%Y%m%d-%H%M%S")
+    network_path = DETECTOR_NETS_PATH / time.strftime("train_%Y%m%d-%H%M%S")
     Path(network_path).mkdir(parents=True)
     train(
         IMAGES_PATH, TRAIN_DATA_PATH / data_set, train_portion, network_path, batch_size, lr,
