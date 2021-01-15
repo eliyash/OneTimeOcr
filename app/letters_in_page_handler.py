@@ -9,7 +9,7 @@ from app.tools import get_values_to_add_and_remove
 
 class LettersInPageHandler:
     def __init__(
-            self, view_model: ViewModel, run_gui_action: Callable,
+            self, view_model: ViewModel, run_on_new_gui_thread: Callable,
             canvas, get_image_patch: Callable, translator: Callable
     ):
         self._view_model = view_model
@@ -22,7 +22,7 @@ class LettersInPageHandler:
         self._letters_markers_managers = dict()  # type: Dict[Tuple, SimpleMarkerDrawer]
 
         self._view_model.data_model.instances_locations_by_letters.attach(
-            run_gui_action(self.set_marker_managers_for_duplicates)
+            run_on_new_gui_thread(self.set_marker_managers_for_duplicates)
         )
 
     @staticmethod

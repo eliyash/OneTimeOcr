@@ -107,15 +107,15 @@ class MainWindow:
 
         self._gui_tread_queue = queue.Queue()
         self._main_letters_handler = LettersInPageHandler(
-            self._view_model, self._run_gui_action, self._canvas, self._get_letter_patch, self._translator
+            self._view_model, self._run_on_new_gui_thread, self._canvas, self._get_letter_patch, self._translator
         )
 
         self._main_letters_screen = MainLettersScreen(
-            self._view_model, self._run_gui_action, self._get_letter_by_key, self._main_letters_bar
+            self._view_model, self._run_on_new_gui_thread, self._get_letter_by_key, self._main_letters_bar
         )
 
         self._duplicates_letters_screen = DuplicateLettersFrame(
-            self._view_model, self._run_gui_action, self._get_letter_patch, self._duplicates_letters_frame
+            self._view_model, self._run_on_new_gui_thread, self._get_letter_patch, self._duplicates_letters_frame
         )
 
         self._view_model.data_model.page.attach(self._update_image)
@@ -131,7 +131,7 @@ class MainWindow:
                 self._window.after_idle(task)
         self._window.after(100, self.check_queue)
 
-    def _run_gui_action(self, func, delay=0):
+    def _run_on_new_gui_thread(self, func, delay=0):
         return lambda *args, **kwargs: self._window.after(delay, func(*args, **kwargs))
 
     def run_on_gui_thread(self, func):

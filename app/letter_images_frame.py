@@ -7,10 +7,10 @@ from app.special_values import UNKNOWN_KEY
 
 
 class LettersImagesFrame:
-    def __init__(self, view_model: ViewModel, run_gui_action: Callable, get_image_patch: Callable, frame):
+    def __init__(self, view_model: ViewModel, run_on_new_gui_thread: Callable, get_image_patch: Callable, frame):
         self._letters_in_a_row = 30
         self._view_model = view_model
-        self._run_gui_action = run_gui_action
+        self._run_on_new_gui_thread = run_on_new_gui_thread
         self._get_image_patch = get_image_patch
         self._frame = frame
 
@@ -68,7 +68,7 @@ class LettersImagesFrame:
 class DuplicateLettersFrame(LettersImagesFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._view_model.current_location_duplicates.attach(self._run_gui_action(self.show_images))
+        self._view_model.current_location_duplicates.attach(self._run_on_new_gui_thread(self.show_images))
 
     def show_images(self, current_location_duplicates):
         self._marked_keys = current_location_duplicates
@@ -113,8 +113,8 @@ class DuplicateLettersFrame(LettersImagesFrame):
 class MainLettersScreen(LettersImagesFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._view_model.data_model.different_letters.attach(self._run_gui_action(self.show_images))
-        self._view_model.current_chosen_letter.attach(self._run_gui_action(self.update_chosen_letter))
+        self._view_model.data_model.different_letters.attach(self._run_on_new_gui_thread(self.show_images))
+        self._view_model.current_chosen_letter.attach(self._run_on_new_gui_thread(self.update_chosen_letter))
         self._letters_in_a_row = 40
 
     def update_chosen_letter(self, chosen_letter):
