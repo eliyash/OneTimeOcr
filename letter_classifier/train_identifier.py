@@ -4,6 +4,7 @@ import json
 import shutil
 import time
 from pathlib import Path
+from typing import Callable
 
 import cv2
 import torch
@@ -17,8 +18,12 @@ from app.paths import TRAIN_DATA_PATH
 from app.tools import get_device
 from letter_classifier.mnist_like_net import Net
 
+DEFAULT_NUMBER_OF_EPOCHS = 20
+DEFAULT_LEARNING_RATE = 0.01
+
 
 def train(model, device, train_loader, optimizer, epoch):
+    sum_train_loss = 0
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -26,8 +31,10 @@ def train(model, device, train_loader, optimizer, epoch):
         output = model(data)
         loss = f.nll_loss(output, target)
         loss.backward()
+        sum_train_loss += loss.item()
         optimizer.step()
         print('Train Epoch: {}, Batch: {}'.format(epoch, batch_idx))
+    return sum_train_loss / len(train_loader.dataset)
 
 
 def test(model, device, test_loader, epoch, output_folder):
@@ -61,12 +68,16 @@ def test(model, device, test_loader, epoch, output_folder):
     return test_loss
 
 
-def run_train(data_set):
+def run_train(
+        data_set,
+        number_of_epochs=DEFAULT_NUMBER_OF_EPOCHS,
+        lr=DEFAULT_LEARNING_RATE,
+        set_new_train_fig: Callable = None
+):
     torch.manual_seed(1)
     device = get_device()
 
     train_portion = 0.7
-    number_of_epochs = 20
     batch = 8
     network_path = Path('../networks') / 'identifier' / time.strftime("train_%Y%m%d-%H%M%S")
     network_path.mkdir(parents=True)
@@ -95,17 +106,23 @@ def run_train(data_set):
     test_loader = torch.utils.data.DataLoader(test_set_data, batch_size=batch, shuffle=True, num_workers=1)
 
     model = Net(number_of_classes).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.5)
 
     best_test_loss = None
+    test_losses_by_epochs = []
+    train_losses_by_epochs = []
     for epoch in range(number_of_epochs):
-        train(model, device, train_loader, optimizer, epoch)
+        train_loss = train(model, device, train_loader, optimizer, epoch)
         test_loss = test(model, device, test_loader, epoch, network_path)
+        train_losses_by_epochs.append(train_loss)
+        test_losses_by_epochs.append(test_loss)
         if best_test_loss is None or test_loss < best_test_loss:
             best_test_loss = test_loss
             torch.save(model, str(network_path / 'epoch_{}.pth'.format(epoch)))
             with open(str(network_path / 'state.json'), 'w') as state_file:
                 json.dump({'loss': best_test_loss}, state_file)
+        set_new_train_fig(test_losses_by_epochs, train_losses_by_epochs)
+
     torch.save(model, str(network_path / 'last_net.pth'))
 
 

@@ -237,7 +237,7 @@ class App:
             self._save_individual_images(image, key, letters_folder)
 
         self._set_system_status('training identification')
-        train_identifier(data_set_name)
+        train_identifier(data_set_name, set_new_train_fig=self._gui.run_on_gui_thread(self._gui.set_new_train_fig))
         self._set_system_status('idle')
 
     def _run_detection_train(self):

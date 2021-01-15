@@ -14,6 +14,8 @@ from letter_detector.loss import Loss
 from letter_detector.model import EAST
 
 BASIC_EAST_MODEL = '../networks/pretrained/east_vgg16.pth'
+DEFAULT_NUMBER_OF_EPOCHS = 20
+DEFAULT_LEARNING_RATE = 1e-3
 
 
 def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_path: Path,
@@ -102,14 +104,12 @@ def calc_loss_on_net(criterion, device, gt_geo, gt_score, ignored_map, img, mode
     return loss
 
 
-def run_train(data_set):
+def run_train(data_set, number_of_epochs=DEFAULT_NUMBER_OF_EPOCHS, lr=DEFAULT_LEARNING_RATE):
     torch.manual_seed(1)
     train_portion = 0.5
     start_net = BASIC_EAST_MODEL
     batch_size = 4
-    lr = 1e-3
     num_workers = 4
-    number_of_epochs = 20
     minimal_improve_to_save = 0
     network_path = Path('../networks') / 'detector' / time.strftime("train_%Y%m%d-%H%M%S")
     Path(network_path).mkdir(parents=True)

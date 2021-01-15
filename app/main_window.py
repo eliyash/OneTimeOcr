@@ -1,7 +1,10 @@
+import queue
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk, filedialog
 from typing import Callable, Tuple, List, Dict
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from PIL import ImageTk
 
@@ -70,8 +73,19 @@ class MainWindow:
         self._data_frame = ttk.Notebook(self._window)
         self._text_frame = ttk.Frame(self._data_frame)
         self._duplicates_letters_frame = ttk.Frame(self._data_frame)
+
+        self._train_frame = ttk.Frame(self._data_frame)
+
+        self._fig = plt.Figure(figsize=(9, 6), facecolor="white")
+        self._subplot = self._fig.add_subplot()
+
+        self._train_canvas = FigureCanvasTkAgg(self._fig, master=self._train_frame)
+        self._train_canvas.get_tk_widget().pack()
+        self._train_canvas.draw()
+
         self._data_frame.add(self._text_frame, text='Page')
         self._data_frame.add(self._duplicates_letters_frame, text='Letters')
+        self._data_frame.add(self._train_frame, text='Train State')
         self._data_frame.grid(row=2, column=0, sticky="nsew")
         self._canvas = tk.Canvas(self._text_frame)
         self._canvas.pack(side=tk.LEFT)
@@ -91,6 +105,7 @@ class MainWindow:
             self._is_ctrl = False
         self._window.bind("<KeyRelease>", keypress_r)
 
+        self._gui_tread_queue = queue.Queue()
         self._main_letters_handler = LettersInPageHandler(
             self._view_model, self._run_gui_action, self._canvas, self._get_letter_patch, self._translator
         )
@@ -104,6 +119,32 @@ class MainWindow:
         )
 
         self._view_model.data_model.page.attach(self._update_image)
+        self._window.after(0, self.check_queue)
+
+    def check_queue(self):
+        while True:
+            try:
+                task = self._gui_tread_queue.get(block=False)
+            except queue.Empty:
+                break
+            else:
+                self._window.after_idle(task)
+        self._window.after(100, self.check_queue)
+
+    def _run_gui_action(self, func, delay=0):
+        return lambda *args, **kwargs: self._window.after(delay, func(*args, **kwargs))
+
+    def run_on_gui_thread(self, func):
+        return lambda *args, **kwargs: self._gui_tread_queue.put(lambda: func(*args, **kwargs))
+
+    def set_new_train_fig(self, test_losses_by_epochs, train_losses_by_epochs):
+        x = range(len(train_losses_by_epochs))
+        self._subplot.clear()
+        self._subplot.set_xlabel('epoch', fontsize=12)
+        self._subplot.set_ylabel('loss', fontsize=12)
+        self._subplot.set_title("Losses")
+        self._subplot.plot(x, train_losses_by_epochs, 'b', x, test_losses_by_epochs, 'r')
+        self._train_canvas.draw()
 
     @staticmethod
     def get_folder(start_dir: Path, text: str):
@@ -140,9 +181,6 @@ class MainWindow:
 
     def _translator(self, location, inverse=False):
         return points_accumulate(location, self._translation, -1 if inverse else 1)
-
-    def _run_gui_action(self, func, delay=0):
-        return lambda *args, **kwargs: self._window.after(delay, func(*args, **kwargs))
 
     def _correlate_letter(self):
         window = tk.Tk(className='Correlate')
