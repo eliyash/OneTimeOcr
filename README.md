@@ -20,6 +20,7 @@ will be done on the current dataset (i.e. first pages of a book)
   
 ### DeepLearning
 #### _General_
+* investigate strange loss graphs 
 * chose wisely networks
 * add gt page visualization (boxes as image)
 #### _Detector net_

@@ -14,7 +14,7 @@ from app.letter_images_frame import MainLettersScreen, DuplicateLettersFrame
 from app.letters_in_page_handler import LettersInPageHandler
 from app.special_values import NUM_OF_LETTERS, ZERO_X_Y, UNKNOWN_KEY, PAD_X
 from app.tools import points_accumulate, points_sub, box_lines_from_center, two_points_min, two_points_max, \
-    box_margin_from_box_shape, are_points_close
+    box_margin_from_box_shape, are_points_close, plot_train_losses
 
 
 class MainWindow:
@@ -137,12 +137,7 @@ class MainWindow:
         return lambda *args, **kwargs: self._gui_tread_queue.put(lambda: func(*args, **kwargs))
 
     def set_new_train_fig(self, test_losses_by_epochs, train_losses_by_epochs, title):
-        x = range(len(train_losses_by_epochs))
-        self._subplot.clear()
-        self._subplot.set_xlabel('epoch', fontsize=12)
-        self._subplot.set_ylabel('loss', fontsize=12)
-        self._subplot.set_title(title)
-        self._subplot.plot(x, train_losses_by_epochs, 'b', x, test_losses_by_epochs, 'r')
+        plot_train_losses(self._subplot, test_losses_by_epochs, title, train_losses_by_epochs)
         self._train_canvas.draw()
 
     @staticmethod

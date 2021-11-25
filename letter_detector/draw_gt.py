@@ -35,6 +35,7 @@ def draw_box_on_image(image, line):
 
 def draw_boxes_on_image_and_show(image, boxes):
     image = np.array(image)
+    boxes = np.array(boxes)
     for box in boxes:
         locations = list(zip(box[0::2], box[1::2]))
         c = 0

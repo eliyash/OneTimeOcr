@@ -1,4 +1,3 @@
-import os
 import random
 import sys
 import time
@@ -61,9 +60,10 @@ class App:
                 ('Save', self._wrap_to_executor(self._on_save_data)),
             ],
             'Training Nets': [
-                ('Train Detection', self._wrap_to_executor(self._run_detection_train)),
-                ('Train Identification', self._wrap_to_executor(self._run_identification_train)),
-                ('Train', self._wrap_to_executor(self._train_networks_last_dataset))
+                ('Train Both', self._wrap_to_executor(self._train_networks)),
+                ('Train Detection only', self._wrap_to_executor(self._train_detection_network)),
+                ('Train Identification only', self._wrap_to_executor(self._train_identification_network)),
+                ('Train on last annotation', self._wrap_to_executor(self._train_networks_last_dataset))
             ],
             'Find Letters': [
                 ('Tesserct', self._wrap_to_executor(self._get_tessarect_page_letters)),
@@ -108,13 +108,13 @@ class App:
 
     @classmethod
     def _train_networks_last_dataset(cls):
-        last_data_set = sorted(os.listdir('../data/annotations'))[-1]
-        cls._train_networks(last_data_set)
+        last_data_set_path = sorted(list(LETTERS_PATH.iterdir()), key=lambda x: x.name)[-1]
+        train_detector(last_data_set_path)
+        train_identifier(last_data_set_path)
 
-    @staticmethod
-    def _train_networks(data_set):
-        train_detector(data_set)
-        train_identifier(data_set)
+    def _train_networks(self):
+        self._train_detection_network()
+        self._train_identification_network()
 
     def _get_empty_instance_location_map(self):
         return {key: set() for key in self._data_model.different_letters.data.keys()}
@@ -214,7 +214,7 @@ class App:
         with open(str(path_to_save / 'status.json'), 'w') as fp:
             json.dump({'is_ready': is_ready}, fp, indent=4)
 
-    def _run_identification_train(self):
+    def _train_identification_network(self):
         self._set_system_status('preparing for identify train')
         data_set_name = time.strftime("identification_dataset_%Y%m%d-%H%M%S")
         new_dataset_path = TRAIN_DATA_PATH / data_set_name
@@ -237,10 +237,10 @@ class App:
             self._save_individual_images(image, key, letters_folder)
 
         self._set_system_status('training identification')
-        train_identifier(data_set_name, set_new_train_fig=self._gui.run_on_gui_thread(self._gui.set_new_train_fig))
+        train_identifier(new_dataset_path, set_new_train_fig=self._gui.run_on_gui_thread(self._gui.set_new_train_fig))
         self._set_system_status('idle')
 
-    def _run_detection_train(self):
+    def _train_detection_network(self):
         self._set_system_status('preparing for detection train')
         data_set_name = time.strftime("detection_dataset_%Y%m%d-%H%M%S")
         new_dataset_path = TRAIN_DATA_PATH / data_set_name
@@ -255,7 +255,7 @@ class App:
                 self._save_page(instance_locations, pages_folder, page_folder_name, True)
 
         self._set_system_status('training detection')
-        train_detector(data_set_name, set_new_train_fig=self._gui.run_on_gui_thread(self._gui.set_new_train_fig))
+        train_detector(new_dataset_path, set_new_train_fig=self._gui.run_on_gui_thread(self._gui.set_new_train_fig))
         self._set_system_status('idle')
 
     def _run_both_nets(self):

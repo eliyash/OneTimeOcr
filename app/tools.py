@@ -130,3 +130,12 @@ def union_notifier_and_dict_values(notifier: Subject, dict_src: Dict):
     def union_values(dest_val, src_val):
         return src_val if dest_val is None else dest_val
     union_notifier_and_dict(notifier, dict_src, union_values)
+
+
+def plot_train_losses(subplot, test_losses_by_epochs, title, train_losses_by_epochs):
+    x = range(len(train_losses_by_epochs))
+    subplot.clear()
+    subplot.set_xlabel('epoch', fontsize=12)
+    subplot.set_ylabel('loss', fontsize=12)
+    subplot.set_title(title)
+    subplot.plot(x, train_losses_by_epochs, 'b', x, test_losses_by_epochs, 'r')

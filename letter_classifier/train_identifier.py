@@ -17,8 +17,8 @@ from app.paths import TRAIN_DATA_PATH, IDENTIFIER_NETS_PATH
 from app.tools import get_device
 from letter_classifier.mnist_like_net import Net
 
-DEFAULT_NUMBER_OF_EPOCHS = 20
-DEFAULT_LEARNING_RATE = 0.01
+DEFAULT_NUMBER_OF_EPOCHS = 200
+DEFAULT_LEARNING_RATE = 0.001
 
 
 def train(model, device, train_loader, optimizer, epoch):
@@ -68,7 +68,7 @@ def test(model, device, test_loader, epoch, output_folder):
 
 
 def run_train(
-        data_set,
+        data_set_path,
         number_of_epochs=DEFAULT_NUMBER_OF_EPOCHS,
         lr=DEFAULT_LEARNING_RATE,
         set_new_train_fig: Callable = None
@@ -80,8 +80,6 @@ def run_train(
     batch = 8
     network_path = IDENTIFIER_NETS_PATH / time.strftime("train_%Y%m%d-%H%M%S")
     network_path.mkdir(parents=True)
-
-    data_set_path = TRAIN_DATA_PATH / data_set
 
     transform = transforms.Compose([
         transforms.Resize((60, 60)),
@@ -128,7 +126,8 @@ def run_train(
 
 
 def main():
-    run_train('dataset_20201209-145735')
+    data_set_path = TRAIN_DATA_PATH / 'dataset_20201209-145735'
+    run_train(data_set_path)
 
 
 if __name__ == '__main__':
