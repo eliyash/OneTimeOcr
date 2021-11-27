@@ -19,7 +19,7 @@ def detect_letters(img_path, network_path):
     boxes = detect(img, model, device)
 
     locations = set()
-    for box in np.array(boxes):
+    for box in list(boxes):
         locations.add((int(np.mean(box[0:-1:2])), int(np.mean(box[1::2]))))
 
     return locations

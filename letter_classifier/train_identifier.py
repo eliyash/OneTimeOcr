@@ -103,7 +103,7 @@ def run_train(
     test_loader = torch.utils.data.DataLoader(test_set_data, batch_size=batch, shuffle=True, num_workers=1)
 
     model = Net(number_of_classes).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.5)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     best_test_loss = None
     test_losses_by_epochs = []

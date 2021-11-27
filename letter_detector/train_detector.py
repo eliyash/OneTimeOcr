@@ -8,8 +8,9 @@ from torch import nn
 from torch.optim import lr_scheduler
 import time
 import matplotlib.pyplot as plt
+import numpy as np
 
-from app.paths import TRAIN_DATA_PATH, IMAGES_PATH, DETECTOR_NETS_PATH
+from app.paths import TRAIN_DATA_PATH, IMAGES_PATH, DETECTOR_NETS_PATH, LETTERS_PATH
 from app.tools import get_device, plot_train_losses
 from letter_detector.dataset import CustomDataset
 from letter_detector.detect import get_boxes
@@ -21,9 +22,21 @@ BASIC_EAST_MODEL = '../networks/pretrained/east_vgg16.pth'
 DEFAULT_NUMBER_OF_EPOCHS = 20
 DEFAULT_LEARNING_RATE = 1e-3
 
+def show_detection_image(img, pred_geo, pred_score):
+    for single_pred_score, single_pred_geo, single_img in zip(
+            pred_score.detach().cpu().numpy(),
+            pred_geo.detach().cpu().numpy(),
+            np.moveaxis(img.cpu().numpy().copy(), 1, -1)
+    ):
+        boxes = get_boxes(single_pred_score, single_pred_geo)
+        if boxes is not None:
+            draw_boxes_on_image_and_show(single_img, boxes)
 
-def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_path: Path, batch_size, lr, num_workers,
-          number_of_epochs, minimal_improvement_for_save, start_net=None, set_new_train_fig: Callable = None):
+
+def train(
+        images_path: Path, gt_data_path: Path, train_portion: float, networks_path: Path, batch_size, lr, num_workers,
+        number_of_epochs, minimal_improvement_for_save, start_net=None, set_new_train_fig: Callable = None,
+        show_detection=False):
     gt_path = gt_data_path / 'pages'
     device = get_device()
     data_set = CustomDataset(images_path, gt_path, duplicate_pages=batch_size)
@@ -66,7 +79,6 @@ def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_
     best_training_loss = None
     for epoch in range(number_of_epochs):
         model.train()
-        scheduler.step(epoch)
         epoch_train_losses = []
         epoch_time = time.time()
         for i, (img, gt_score, gt_geo, ignored_map) in enumerate(train_loader):
@@ -80,9 +92,12 @@ def train(images_path: Path, gt_data_path: Path, train_portion: float, networks_
             print('Epoch is [{}/{}], mini-batch is [{}/{}], time consumption is {:.8f}, batch_loss is {:.8f}'.format(
                 epoch + 1, number_of_epochs, i + 1, int(file_num / batch_size), time.time() - start_time, loss.item())
             )
-        # boxes = get_boxes(pred_score.unsqueeze(0).cpu().detach().numpy(), pred_geo.squeeze(0).cpu().detach().numpy())
-        # if boxes:
-        #     draw_boxes_on_image_and_show(img.to(device).cpu(), boxes)
+            if show_detection:
+                print('pred')
+                show_detection_image(img, pred_geo, pred_score)
+                print('gt')
+                show_detection_image(img, gt_geo, gt_score)
+        scheduler.step(epoch)
 
         model.eval()
         epoch_test_losses = []
@@ -138,7 +153,7 @@ def run_train(
     Path(network_path).mkdir(parents=True)
     train(
         IMAGES_PATH, data_set_path, train_portion, network_path, batch_size, lr,
-        num_workers, number_of_epochs, minimal_improve_to_save, start_net, set_new_train_fig
+        num_workers, number_of_epochs, minimal_improve_to_save, start_net, set_new_train_fig, show_detection=True
     )
 
 
@@ -158,7 +173,7 @@ def main():
         subplot.plot(x, train_losses_by_epochs, 'b', x, test_losses_by_epochs, 'r')
         plt.show()
 
-    data_set_path = TRAIN_DATA_PATH / 'detection_dataset_20210115-214834'
+    data_set_path = Path(r'C:\Workspace\MyOCR\data\annotations\dataset_20211126-095235')
     run_train(data_set_path, set_new_train_fig=set_new_train_fig)
 
 

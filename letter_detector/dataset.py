@@ -4,7 +4,6 @@ import numpy as np
 import cv2
 from PIL import Image
 import math
-import os
 import torch
 import torchvision.transforms as transforms
 from torch.utils import data
@@ -348,15 +347,30 @@ class CustomDataset(data.Dataset):
 	def __getitem__(self, index):
 		vertices, labels = create_data(self.matching_image_gt_files[index]['gt'], self.letter_shape)
 		img = Image.open(self.matching_image_gt_files[index]['image'])
-		img, vertices = adjust_height(img, vertices)
-		img, vertices = rotate_img(img, vertices)
-		img, vertices = crop_img(img, vertices, labels, self.length)
+		# img, vertices = adjust_height(img, vertices)
+		# img, vertices = rotate_img(img, vertices)
+
+		x, y = np.random.randint(low=(0, 0), high=tuple(axis - 128 for axis in img.size), size=2)
+		img = img.crop((x, y, x+128, y+128))
+		if vertices.shape[0] > 0:
+			vertices -= np.array([x, x, y, x, x, y, y, y])
+
+		# show = False
+		# im = np.array(img)
+		# for points in list(vertices.astype(int)):
+		# 	if min(points) >= 0 and max(points) < 128:
+		# 		xs, xe, ys, ye = points[[2, 5, 0, 1]]
+		# 		im[xs:xe, ys:ye, :] = 0
+		# 		show = True
+		# if show:
+		# 	cv2.imshow('asd', im)
+		# 	cv2.waitKey()
+
 		transform = transforms.Compose([
 			transforms.ColorJitter(*SIZE_OF_HALF_PIXEL, 0.25),
 			transforms.ToTensor(),
 			transforms.Normalize(mean=SIZE_OF_HALF_PIXEL, std=SIZE_OF_HALF_PIXEL)
 		])
-		
 		score_map, geo_map, ignored_map = get_score_geo(img, vertices, labels, self.scale, self.length)
 		return transform(img), score_map, geo_map, ignored_map
 
