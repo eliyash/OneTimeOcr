@@ -327,50 +327,83 @@ def get_score_geo(img, vertices, labels, scale, length):
 	return torch.Tensor(score_map).permute(2,0,1), torch.Tensor(geo_map).permute(2,0,1), torch.Tensor(ignored_map).permute(2,0,1)
 
 
-class CustomDataset(data.Dataset):
+SIZE_OF_TILE = 128
+SIZE_OF_STRIDE = 64
+
+
+def load_page_data(gt_file, img_path):
+	gt_path = gt_file / 'instances_locations_by_index.json'
+	image_path = next(filter(lambda path: path.name.startswith(gt_file.name), img_path.iterdir()))
+	centers = create_data(gt_path)
+	img = Image.open(image_path)
+	centers_map = np.zeros(list(reversed(img.size))).astype(np.float32)
+	radios = 2
+	for x, y in centers:
+		centers_map[y - radios:y + radios, x - radios:x + radios] = 1
+	return img, centers_map
+
+
+def crop_page_data(img, centers_map, x, y, size_of_tile=SIZE_OF_TILE):
+	img_cropped = img.crop((x, y, x+size_of_tile, y+size_of_tile))
+	centers_map_cropped = centers_map[y:y+size_of_tile, x:x+size_of_tile]
+	return img_cropped, centers_map_cropped
+
+
+class BaseDataset(data.Dataset):
 	def __init__(self, img_path: Path, gt_path: Path, scale=0.25, length=128, duplicate_pages=1):
-		super(CustomDataset, self).__init__()
+		super(BaseDataset, self).__init__()
 		self.letter_shape = get_data_params_from_file(img_path.parent)['letter_shape']
-		self.matching_image_gt_files = [
-			{
-				'gt': gt_file / 'instances_locations_by_index.json',
-				'image': next(filter(lambda path: path.name.startswith(gt_file.name), img_path.iterdir()))
-			}
-			for gt_file in gt_path.iterdir() for _ in range(duplicate_pages)
-		]
+		self.pages_db = [load_page_data(gt_file, img_path) for gt_file in gt_path.iterdir()]
 		self.scale = scale
 		self.length = length
 
-	def __len__(self):
-		return len(self.matching_image_gt_files)
+	def chose_page_and_tile_offset(self, index):
+		raise NotImplementedError
 
 	def __getitem__(self, index):
-		vertices, labels = create_data(self.matching_image_gt_files[index]['gt'], self.letter_shape)
-		img = Image.open(self.matching_image_gt_files[index]['image'])
-		# img, vertices = adjust_height(img, vertices)
-		# img, vertices = rotate_img(img, vertices)
+		page_index, (x, y) = self.chose_page_and_tile_offset(index)
 
-		x, y = np.random.randint(low=(0, 0), high=tuple(axis - 128 for axis in img.size), size=2)
-		img = img.crop((x, y, x+128, y+128))
-		if vertices.shape[0] > 0:
-			vertices -= np.array([x, x, y, x, x, y, y, y])
+		img, centers_map = self.pages_db[page_index]
 
-		# show = False
-		# im = np.array(img)
-		# for points in list(vertices.astype(int)):
-		# 	if min(points) >= 0 and max(points) < 128:
-		# 		xs, xe, ys, ye = points[[2, 5, 0, 1]]
-		# 		im[xs:xe, ys:ye, :] = 0
-		# 		show = True
-		# if show:
-		# 	cv2.imshow('asd', im)
-		# 	cv2.waitKey()
+		img_cropped, centers_map_cropped = crop_page_data(img, centers_map, x, y)
 
 		transform = transforms.Compose([
-			transforms.ColorJitter(*SIZE_OF_HALF_PIXEL, 0.25),
+			# transforms.ColorJitter(*SIZE_OF_HALF_PIXEL, 0.25),
 			transforms.ToTensor(),
-			transforms.Normalize(mean=SIZE_OF_HALF_PIXEL, std=SIZE_OF_HALF_PIXEL)
+			# transforms.Normalize(mean=SIZE_OF_HALF_PIXEL, std=SIZE_OF_HALF_PIXEL)
 		])
-		score_map, geo_map, ignored_map = get_score_geo(img, vertices, labels, self.scale, self.length)
-		return transform(img), score_map, geo_map, ignored_map
+
+		img_cropped_tensor = transform(img_cropped)
+
+		return img_cropped_tensor, np.expand_dims(centers_map_cropped[::4, ::4], axis=0)
+
+
+class TilesDataset(BaseDataset):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+
+		def get_tiles_start_points(size):
+			return [offset * SIZE_OF_STRIDE for offset in range(size // SIZE_OF_STRIDE - 1)]
+
+		self.pages_and_tile_offsets = []
+
+		for page_index, (page, _) in enumerate(self.pages_db):
+			x_max, y_max = page.size
+			x_tiles = get_tiles_start_points(x_max)
+			y_tiles = get_tiles_start_points(y_max)
+			new_tiles = [(page_index, (x_start, y_start)) for x_start in x_tiles for y_start in y_tiles]
+			self.pages_and_tile_offsets.extend(new_tiles)
+
+	def __len__(self):
+		return len(self.pages_and_tile_offsets)
+
+	def chose_page_and_tile_offset(self, index):
+		return self.pages_and_tile_offsets[index]
+
+
+class RandomTilesDataset(TilesDataset):
+	def chose_page_and_tile_offset(self, index):
+		page_index, _ = super().chose_page_and_tile_offset(index)
+		page_size = self.pages_db[page_index][0].size
+		return page_index, np.random.randint(low=(0, 0), high=tuple(axis - 128 for axis in page_size), size=2)
 

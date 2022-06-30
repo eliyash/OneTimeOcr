@@ -16,11 +16,11 @@ def detect_letters(img_path, network_path):
     model.eval()
     img = Image.open(img_path)
     
-    boxes = detect(img, model, device)
+    locations = detect(img, model, device)
 
-    locations = set()
-    for box in list(boxes):
-        locations.add((int(np.mean(box[0:-1:2])), int(np.mean(box[1::2]))))
+    # locations = set()
+    # for box in list(boxes):
+    #     locations.add((int(np.mean(box[0:-1:2])), int(np.mean(box[1::2]))))
 
     return locations
 

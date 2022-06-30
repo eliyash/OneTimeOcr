@@ -42,13 +42,10 @@ def center_to_all_points(point, letter_shape):
     return all_points
 
 
-def create_data(path, letter_shape):
-    # letter_margin = box_margin_from_box_shape(letter_shape)
+def create_data(path):
     centers_by_main_letters = load_data(path)
     all_centers = [center for letter_centers in centers_by_main_letters.values() for center in letter_centers]
-    vertices = list(map(lambda x: center_to_all_points(x, letter_shape), all_centers))
-    labels = list(map(lambda x: 1, vertices))
-    return np.array(vertices), np.array(labels)
+    return np.array(all_centers)
 
 
 def change_image(data, image):

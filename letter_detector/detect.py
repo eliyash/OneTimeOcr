@@ -1,3 +1,4 @@
+import cv2
 import torch
 from torchvision import transforms
 from PIL import Image, ImageDraw
@@ -6,7 +7,17 @@ import numpy as np
 
 from app.tools import get_device
 from letter_detector.dataset import get_rotate_mat
+from letter_detector.draw_gt import draw_boxes_on_image_and_show
 from letter_detector.model import EAST
+
+
+def show_detection_image(img, mask):
+    for score_mask, single_img in zip(
+            mask.detach().cpu().numpy(),
+            np.moveaxis(img.cpu().numpy().copy(), 1, -1)
+    ):
+
+        draw_boxes_on_image_and_show(single_img, score_mask[0])
 
 
 def resize_img(img):
@@ -153,10 +164,25 @@ def detect(img, model, device):
 		detected polys
 	'''
 	img, ratio_h, ratio_w = resize_img(img)
+	image = load_pil(img)
 	with torch.no_grad():
-		score, geo = model(load_pil(img).to(device))
-	boxes = get_boxes(score.squeeze(0).cpu().numpy(), geo.squeeze(0).cpu().numpy())
-	return adjust_ratio(boxes, ratio_w, ratio_h)
+		score = model(image.to(device))
+
+	binary_image = score.squeeze(0).cpu().numpy()[0].round().astype(np.uint8)
+
+	num_labels, labels_im, stats, centroids = cv2.connectedComponentsWithStats(binary_image)
+	ratio = np.array((ratio_h, ratio_w))
+	re = [tuple((centroid / ratio * 4).astype(np.uint16)) for centroid in centroids]
+	print(binary_image.shape)
+	print(re)
+	print(image.size())
+	np_img = np.array(image).move()
+	r = 1
+	for y, x in re:
+		np_img[x-r:x+1+r, y-r:y+1+r] = (255, 0, 120)
+	cv2.imshow('asd', np_img)
+	cv2.waitKey()
+	return re
 
 
 def plot_boxes(img, boxes):
