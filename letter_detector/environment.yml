@@ -1,0 +1,14 @@
+name: ocr_test
+channels:
+  - nvidia
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python==3.9.16
+  - pytorch==1.13.1
+  - torchvision==0.14.1
+  - torchaudio==0.13.1
+  - pytorch-cuda==11.7
+  - matplotlib==3.5.3
+  - opencv==4.6.0
